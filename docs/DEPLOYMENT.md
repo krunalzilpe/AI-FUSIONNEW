@@ -2,6 +2,46 @@
 
 Deployment status: **not deployed**. No hosting URL has been created or verified.
 
+## Render free demonstration
+
+The repository includes `render.yaml` and a Python 3.12 Docker image for a free
+web service. The image installs CPU-only PyTorch and the Linux OCR libraries,
+downloads the public embedding/OCR models, and collects static files. Gunicorn
+runs one worker with two threads; WhiteNoise serves static assets. Migrations
+run at startup because the free filesystem can reset between starts.
+
+1. Open https://dashboard.render.com/select-repo?type=blueprint and choose
+   `krunalzilpe/AI-FUSIONNEW`, branch `main`.
+2. Review the Blueprint: one **Free** Docker web service, no paid resources.
+   Enter `GEMINI_API_KEY` in Render's secret field. Do not commit it or paste it
+   into chat. Render generates `DJANGO_SECRET_KEY` automatically.
+3. Deploy and wait for the build and service health check to pass. The first
+   build downloads large ML dependencies and the multilingual model.
+4. Visit the URL returned by Render. Verify `/health/`, the dashboard styling,
+   a small TXT/PDF upload, processing, a cited answer, and source access.
+
+Render's assigned hostname configures allowed hosts, trusted HTTPS origins,
+proxy HTTPS detection, HTTPS redirects and secure cookies automatically.
+For a custom domain, add that hostname to `ALLOWED_HOSTS` and its complete
+`https://...` origin to `CSRF_TRUSTED_ORIGINS`.
+
+This is a best-effort free demo. The Free tier has 512 MB RAM, which may be
+insufficient when the local multilingual model loads or processes documents.
+A successful health check only verifies the web process, not the AI pipeline.
+If the process is killed during indexing, more memory or a deliberate change
+of embedding architecture is required; changing Gunicorn's timeout does not
+fix out-of-memory errors. No paid upgrade is automatic.
+
+**Uploads, SQLite history and Chroma indexes are temporary:** Render Free
+loses local writes when the service restarts, redeploys or sleeps after idle
+time. Do not rely on it for stored documents. Local `.env`, databases, uploads
+and caches are excluded from the Docker build context. A first deployment
+starts with an empty library.
+
+References: [Render Docker](https://render.com/docs/docker),
+[free service limits](https://render.com/docs/free), and
+[Blueprint specification](https://render.com/docs/blueprint-spec).
+
 ## Local demonstration
 
 Use the Windows commands in the README. Keep `DJANGO_DEBUG=True`, bind the development server to `127.0.0.1`, and open the chosen local port. Run the real integration and HTTP smoke tests before the demo. Download the embedding model before judging starts so a cold download does not interrupt the upload.

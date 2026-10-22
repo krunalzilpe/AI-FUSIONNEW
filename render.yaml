@@ -1,0 +1,19 @@
+# Free demonstration: local documents and history reset when the service restarts.
+services:
+  - type: web
+    name: documind-ai-fusionnew
+    runtime: docker
+    plan: free
+    repo: https://github.com/krunalzilpe/AI-FUSIONNEW
+    branch: main
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health/
+    envVars:
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-flash-latest
