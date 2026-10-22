@@ -25,12 +25,13 @@ proxy HTTPS detection, HTTPS redirects and secure cookies automatically.
 For a custom domain, add that hostname to `ALLOWED_HOSTS` and its complete
 `https://...` origin to `CSRF_TRUSTED_ORIGINS`.
 
-This is a best-effort free demo. The Free tier has 512 MB RAM, which may be
-insufficient when the local multilingual model loads or processes documents.
-A successful health check only verifies the web process, not the AI pipeline.
-If the process is killed during indexing, more memory or a deliberate change
-of embedding architecture is required; changing Gunicorn's timeout does not
-fix out-of-memory errors. No paid upgrade is automatic.
+This is a best-effort free demo. The Free tier has 512 MB RAM. The deployment
+uses the multilingual E5-small encoder, but this memory limit can still be
+insufficient while the local model loads or indexes documents. A successful
+health check only verifies the web process, not the AI pipeline. If the process
+is killed during indexing, more memory or a quantized embedding architecture is
+required; changing Gunicorn's timeout does not fix out-of-memory errors. No
+paid upgrade is automatic.
 
 **Uploads, SQLite history and Chroma indexes are temporary:** Render Free
 loses local writes when the service restarts, redeploys or sleeps after idle

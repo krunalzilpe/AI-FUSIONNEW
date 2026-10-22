@@ -10,7 +10,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 
 from .models import ChatMessage, Conversation, Document, TextChunk
-from .rag import process_document, retrieve, split_text, extract_pages
+from .rag import process_document, retrieve, split_text, extract_pages, _embedding_inputs
 from .services.embeddings import index_signature
 from .services.queries import understand_query
 from .test_fixtures import pdf_bytes
@@ -248,6 +248,15 @@ class IngestionTests(TestCase):
 
 
 class QueryAndGenerationTests(TestCase):
+    def test_multilingual_e5_uses_role_prefixes_for_documents_and_queries(self):
+        with override_settings(EMBEDDING_MODEL="intfloat/multilingual-e5-small"):
+            self.assertEqual(_embedding_inputs(["budget details"], "passage"), ["passage: budget details"])
+            self.assertEqual(_embedding_inputs(["budget question"], "query"), ["query: budget question"])
+
+    def test_other_embedding_models_keep_unprefixed_inputs(self):
+        with override_settings(EMBEDDING_MODEL="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"):
+            self.assertEqual(_embedding_inputs(["budget details"], "passage"), ["budget details"])
+
     def test_response_language_instruction_does_not_dilute_the_factual_query(self):
         original = "Project ka budget kitna hai? Roman Hinglish me jawab do."
         info = understand_query(original)

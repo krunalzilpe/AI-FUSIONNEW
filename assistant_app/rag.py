@@ -13,6 +13,12 @@ from .services.generation import (
 logger = logging.getLogger(__name__)
 
 
+def _embedding_inputs(texts, role):
+    if settings.EMBEDDING_MODEL.startswith("intfloat/multilingual-e5-"):
+        return [f"{role}: {text}" for text in texts]
+    return texts
+
+
 def _state(document, status, progress, **extra):
     for key, value in dict(status=status, progress=progress, **extra).items():
         setattr(document, key, value)
@@ -37,7 +43,7 @@ def process_document(document):
         if not rows:
             raise ValueError("No readable text found. The document may be blank, or OCR could not recognize the scan. Upload a clearer, upright PDF.")
         _state(document, "embedding", 30)
-        vectors = get_embedder().encode([r[1] for r in rows], normalize_embeddings=True, show_progress_bar=False, batch_size=32).tolist()
+        vectors = get_embedder().encode(_embedding_inputs([r[1] for r in rows], "passage"), normalize_embeddings=True, show_progress_bar=False, batch_size=32).tolist()
         _state(document, "indexing", 75)
         delete_document_vectors(document.id)
         collection = get_chroma_collection()
@@ -113,7 +119,7 @@ def retrieve(question, documents=None, top_k=None, query_info=None):
     if info.get("page") is not None:
         scope = {"$and": [scope, {"page_number": {"$eq": info["page"]}}]}
     variants = info.get("variants", [question])[:3]
-    vectors = get_embedder().encode(variants, normalize_embeddings=True, show_progress_bar=False).tolist()
+    vectors = get_embedder().encode(_embedding_inputs(variants, "query"), normalize_embeddings=True, show_progress_bar=False).tolist()
     response = collection.query(query_embeddings=vectors, n_results=min(top_k, count), where=scope, include=["documents", "metadatas", "distances"])
     chunks = TextChunk.objects.filter(document_id__in=allowed_ids).select_related("document").defer("embedding")
     if info.get("page") is not None:

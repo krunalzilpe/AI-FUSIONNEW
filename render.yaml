@@ -17,3 +17,5 @@ services:
         sync: false
       - key: GEMINI_MODEL
         value: gemini-flash-latest
+      - key: EMBEDDING_MODEL
+        value: intfloat/multilingual-e5-small

@@ -9,7 +9,7 @@ if __name__ == "__main__":
     root = Path(__file__).resolve().parent.parent
     snapshot_download(
         repo_id=os.environ.get(
-            "EMBEDDING_MODEL", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+            "EMBEDDING_MODEL", "intfloat/multilingual-e5-small"
         ),
         cache_dir=str(root / ".cache" / "models"),
         allow_patterns=["*.json", "*.txt", "*.model", "*.safetensors"],

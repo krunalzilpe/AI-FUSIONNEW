@@ -80,7 +80,7 @@ if not DEBUG:
         from django.core.exceptions import ImproperlyConfigured
         raise ImproperlyConfigured("Set DJANGO_SECRET_KEY when DEBUG=False.")
 
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "intfloat/multilingual-e5-small")
 EMBEDDING_MAX_TOKENS = int(os.getenv("EMBEDDING_MAX_TOKENS", "512"))
 CHROMA_DB_PATH = os.getenv("CHROMA_DB_PATH", str(BASE_DIR / "chroma_db"))
 RAG_CHUNK_SIZE = int(os.getenv("RAG_CHUNK_SIZE", "900"))

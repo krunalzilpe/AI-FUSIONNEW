@@ -7,7 +7,7 @@ Built for the AI-FUSION Webathon using **Python, Django templates, Bootstrap 5, 
 ## What works
 
 - PDF/TXT uploads up to 15 MB, content-hash deduplication within each workspace, UTF-8 validation, malformed/empty-PDF handling and local OCR for scanned pages (English/Hindi/Marathi models).
-- Background processing with persisted extraction, embedding and indexing states. The first model download can take several minutes.
+- Background processing with persisted extraction, embedding and indexing states. Uses the multilingual E5-small encoder with its required query/document prefixes; the first model download can take several minutes.
 - Real normalized dense embeddings and persistent ChromaDB cosine search. Each embedding/chunking configuration has a separate collection; incompatible indexes are never mixed.
 - Real PDF physical page numbers, TXT chunk numbers, complete original retrieved passages, genuine cosine scores or explicitly labelled coverage samples.
 - Source previews and ownership-checked original files. PDF links include `#page=N`; navigation depends on the browser's PDF viewer.
@@ -41,7 +41,7 @@ Edit `.env` and set `GEMINI_API_KEY`. `GEMINI_MODEL` must be a model available t
 
 Open **http://127.0.0.1:8001/**. Port 8001 avoids conflicting with an older development instance on port 8000. `DJANGO_DEBUG` is the explicit development/production switch; it takes precedence over legacy `DEBUG`. The IDE's `DEBUG=release` mode is not treated as a Django boolean.
 
-On first upload, the multilingual model downloads into `.cache/models/`. Complete cached snapshots are loaded locally on subsequent starts. Embeddings remain local; retrieved excerpts are sent to Gemini only when generating an answer. Without a key, the app shows original retrieved passages and clearly identifies generation as unavailable.
+On first upload, the multilingual E5-small model downloads into `.cache/models/`. Complete cached snapshots are loaded locally on subsequent starts. Embeddings remain local; retrieved excerpts are sent to Gemini only when generating an answer. Without a key, the app shows original retrieved passages and clearly identifies generation as unavailable.
 
 For scanned PDFs, run `.venv\Scripts\python.exe scripts/setup_ocr.py` once after installing dependencies, then restart Django. See [OCR setup](docs/OCR.md).
 
@@ -75,7 +75,7 @@ Question + authorized scope → conservative intent hints → query embeddings
 
 `assistant_app/rag.py` orchestrates the pipeline. `services/` separates extraction, model loading, vector persistence, query handling, generation, processing and ownership. SQLite is authoritative for citation metadata; stale or orphaned vectors are discarded. Summaries sample up to 12 excerpts across the selected scope and disclose that coverage.
 
-The multilingual MiniLM encoder defaults to 128 tokens. This project configures its supported 512-token limit to avoid silently truncating ordinary chunks; that setting is included in the index signature.
+The multilingual E5-small encoder is configured to use its supported 512-token limit to avoid silently truncating ordinary chunks; that setting is included in the index signature. Switching from MiniLM-L12 to E5-small changes retrieval ranking and requires documents to be reindexed.
 
 ## Verification commands
 
