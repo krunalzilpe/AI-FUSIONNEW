@@ -246,7 +246,7 @@
 
             <div class="welcome-footnote">
               <svg><use href="#i-check"/></svg>
-              <span>Built around your documents. Every answer is strictly grounded in verifiable source evidence.</span>
+              <span>Choose document evidence for cited answers, or General Chat for open-ended questions.</span>
             </div>
           </section>
 
@@ -257,14 +257,15 @@
         <!-- COMPOSER AREA -->
         <div class="composer-area">
           <div class="scope-row">
-            <span class="scope-label"><svg><use href="#i-doc"/></svg> Active Sources</span>
+            <span class="scope-label" id="scope-label"><svg><use href="#i-doc"/></svg> Active Sources</span>
             <div id="scope-chips"></div>
             <span id="scope-count"></span>
+            <label class="mode-toggle"><input id="general-chat-toggle" type="checkbox"> General Chat</label>
           </div>
 
           <form id="question-form" class="composer">
             {% csrf_token %}
-            <label class="visually-hidden" for="question-input">Ask about your documents</label>
+            <label class="visually-hidden" id="question-input-label" for="question-input">Ask about your documents</label>
             <textarea id="question-input" rows="1" maxlength="2000" placeholder="Ask anything about your documents… (Press Enter to send)" required></textarea>
             <div class="composer-toolbar">
               <button class="attach-btn" type="button" data-upload title="Upload a PDF or TXT document">
@@ -278,7 +279,7 @@
               </button>
             </div>
           </form>
-          <p class="composer-note">
+          <p class="composer-note" id="composer-note">
             <span>Evidence citations stay attached to answers. Verify with original sources.</span>
             <span class="keyboard-tip">Enter to send &middot; Shift + Enter for new line</span>
           </p>

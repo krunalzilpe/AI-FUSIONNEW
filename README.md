@@ -7,6 +7,7 @@ Built for the AI-FUSION Webathon using **Python, Django templates, Bootstrap 5, 
 ## What works
 
 - PDF/TXT uploads up to 15 MB, content-hash deduplication within each workspace, UTF-8 validation, malformed/empty-PDF handling and local OCR for scanned pages (English/Hindi/Marathi models).
+- Two chat modes: evidence-grounded answers with document citations, or open-ended Gemini chat without requiring an upload. General-chat follow-ups keep recent conversation context.
 - Background processing with persisted extraction, embedding and indexing states. Uses the multilingual E5-small encoder with its required query/document prefixes; the first model download can take several minutes.
 - Real normalized dense embeddings and persistent ChromaDB cosine search. Each embedding/chunking configuration has a separate collection; incompatible indexes are never mixed.
 - Real PDF physical page numbers, TXT chunk numbers, complete original retrieved passages, genuine cosine scores or explicitly labelled coverage samples.

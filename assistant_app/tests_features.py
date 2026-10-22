@@ -30,6 +30,30 @@ class WorkspaceTests(TestCase):
     def post(self, url="/ask/", **data):
         return self.client.post(url, json.dumps(data), content_type="application/json")
 
+    def test_general_chat_sends_without_documents_and_keeps_chat_history(self):
+        with patch("assistant_app.views.generate_chat_answer", side_effect=[
+            ("Hello! Ask me anything.", "chat"),
+            ("The capital is Paris.", "chat"),
+        ]) as generate:
+            first = self.post(question="Hi there", chat_mode="general", documents=[])
+            self.assertEqual(first.status_code, 200)
+            conversation_id = first.json()["conversation_id"]
+            self.assertEqual(first.json()["mode"], "chat")
+            self.assertEqual(first.json()["query_metadata"]["documents"], [])
+            self.assertEqual(first.json()["query_metadata"]["chat_mode"], "general")
+
+            second = self.post(question="What is the capital of France?", chat_mode="general",
+                               documents=[], conversation_id=conversation_id)
+            self.assertEqual(second.status_code, 200)
+            self.assertEqual(Conversation.objects.get(id=conversation_id).documents.count(), 0)
+            self.assertEqual(generate.call_args_list[1].args[1], [
+                {"role": "user", "content": "Hi there"},
+                {"role": "assistant", "content": "Hello! Ask me anything."},
+            ])
+
+        detail = self.client.get(f"/conversation/{conversation_id}/").json()
+        self.assertEqual(detail["chat_mode"], "general")
+
     def test_other_session_cannot_list_query_delete_or_open_document(self):
         self.assertEqual(self.other.get("/documents/").json()["documents"], [])
         for path in [f"/document/{self.doc.id}/delete/", f"/document/{self.doc.id}/reindex/", f"/document/{self.doc.id}/summary/"]:
@@ -248,6 +272,29 @@ class IngestionTests(TestCase):
 
 
 class QueryAndGenerationTests(TestCase):
+    def test_general_chat_calls_gemini_without_document_citations(self):
+        from .services.generation import generate_chat_answer
+        generator = Mock(return_value="The capital of France is Paris.")
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"}):
+            answer, mode = generate_chat_answer(
+                "What is the capital of France?",
+                [{"role": "user", "content": "Hi"}],
+                {"language_hint": "Auto / English"},
+                generator=generator,
+            )
+        self.assertEqual((answer, mode), ("The capital of France is Paris.", "chat"))
+        prompt = generator.call_args.args[0]
+        self.assertIn("User: Hi", prompt)
+        self.assertIn("What is the capital of France?", prompt)
+        self.assertNotIn("[Source", prompt)
+
+    def test_general_chat_reports_missing_gemini_configuration(self):
+        from .services.generation import generate_chat_answer
+        with patch.dict("os.environ", {"GEMINI_API_KEY": ""}):
+            answer, mode = generate_chat_answer("Hi")
+        self.assertEqual(mode, "provider_error")
+        self.assertIn("GEMINI_API_KEY", answer)
+
     def test_multilingual_e5_uses_role_prefixes_for_documents_and_queries(self):
         with override_settings(EMBEDDING_MODEL="intfloat/multilingual-e5-small"):
             self.assertEqual(_embedding_inputs(["budget details"], "passage"), ["passage: budget details"])

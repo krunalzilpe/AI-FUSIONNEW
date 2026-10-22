@@ -14,7 +14,8 @@ run at startup because the free filesystem can reset between starts.
    `krunalzilpe/AI-FUSIONNEW`, branch `main`.
 2. Review the Blueprint: one **Free** Docker web service, no paid resources.
    Enter `GEMINI_API_KEY` in Render's secret field. Do not commit it or paste it
-   into chat. Render generates `DJANGO_SECRET_KEY` automatically.
+   into chat. The Blueprint selects `gemini-3.1-flash-lite`; Render generates
+   `DJANGO_SECRET_KEY` automatically. The local `.env` key is not deployed.
 3. Deploy and wait for the build and service health check to pass. The first
    build downloads large ML dependencies and the multilingual model.
 4. Visit the URL returned by Render. Verify `/health/`, the dashboard styling,

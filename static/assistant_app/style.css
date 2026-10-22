@@ -455,6 +455,8 @@ h1 {
 .scope-chip span { overflow: hidden; text-overflow: ellipsis; }
 .scope-chip b { font-size: 12px; font-weight: 400; }
 #scope-count { margin-left: auto; font-size: 11px; color: var(--muted); white-space: nowrap; }
+.mode-toggle { display: flex; align-items: center; gap: 5px; flex-shrink: 0; color: var(--muted); font-size: 11px; white-space: nowrap; }
+.mode-toggle input { accent-color: var(--accent); }
 
 .composer {
   background: var(--surface);

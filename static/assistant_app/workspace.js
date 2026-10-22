@@ -2,7 +2,8 @@
 (() => {
   const $ = id => document.getElementById(id);
   const initial = JSON.parse($('workspace-initial').textContent);
-  const state = {documents: initial.documents, conversations: initial.conversations, selected: new Set(initial.documents.filter(d => d.status === 'ready').map(d => d.id)), conversation: null, busy: false, uploading: false};
+  const readyDocuments = initial.documents.filter(d => d.status === 'ready');
+  const state = {documents: initial.documents, conversations: initial.conversations, selected: new Set(readyDocuments.map(d => d.id)), chatMode: readyDocuments.length ? 'documents' : 'general', conversation: null, busy: false, uploading: false};
   const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
   const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const icon = name => `<svg aria-hidden="true"><use href="#i-${name}"/></svg>`;
@@ -87,9 +88,19 @@
   }
   function renderScope() {
     const selected = state.documents.filter(d => state.selected.has(d.id));
-    $('scope-chips').innerHTML = selected.map(doc => `<button class="scope-chip" data-remove-scope="${doc.id}" title="Remove ${escape(doc.title)} from selection"><span>${escape(doc.title)}</span><b>×</b></button>`).join('') || '<span class="empty-hint" style="padding:0">Select a ready document in the library</span>';
-    $('scope-count').textContent = selected.length ? `${selected.length} selected` : '';
-    $('send-btn').disabled = state.busy || !selected.length;
+    $('general-chat-toggle').checked = state.chatMode === 'general';
+    $('scope-label').innerHTML = state.chatMode === 'general' ? `${icon('chat')} General chat` : `${icon('doc')} Active Sources`;
+    $('scope-chips').innerHTML = state.chatMode === 'general'
+      ? '<span class="empty-hint" style="padding:0">Uses general knowledge, not uploaded documents</span>'
+      : selected.map(doc => `<button class="scope-chip" data-remove-scope="${doc.id}" title="Remove ${escape(doc.title)} from selection"><span>${escape(doc.title)}</span><b>×</b></button>`).join('') || '<span class="empty-hint" style="padding:0">Select a ready document in the library</span>';
+    $('scope-count').textContent = state.chatMode === 'general' ? 'No sources' : selected.length ? `${selected.length} selected` : '';
+    $('send-btn').disabled = state.busy || state.chatMode === 'documents' && !selected.length;
+    $('send-btn').innerHTML = state.busy ? '<span class="spinner"></span><span>Thinking…</span>' : icon('arrow') + `<span>${state.chatMode === 'general' ? 'Send Message' : 'Ask Question'}</span>`;
+    $('question-input').placeholder = state.chatMode === 'general' ? 'Message OWN GPT… (Press Enter to send)' : 'Ask anything about your documents… (Press Enter to send)';
+    $('question-input-label').textContent = state.chatMode === 'general' ? 'Message OWN GPT' : 'Ask about your documents';
+    $('composer-note').firstElementChild.textContent = state.chatMode === 'general'
+      ? 'General chat uses Gemini and is not grounded in your uploaded documents.'
+      : 'Evidence citations stay attached to answers. Verify with original sources.';
   }
   $('doc-search').addEventListener('input', renderDocuments);
   $('doc-library').addEventListener('change', e => {
@@ -180,6 +191,8 @@
       const data = await api(`/conversation/${button.dataset.conversation}/`);
       speech.stop();
       state.conversation = data.conversation.id;
+      state.chatMode = data.chat_mode === 'general' ? 'general' : 'documents';
+      $('general-chat-toggle').checked = state.chatMode === 'general';
       const ready = new Set(state.documents.filter(d => d.status === 'ready').map(d => d.id));
       state.selected = new Set(data.conversation.documents.filter(id => ready.has(id)));
       $('chat-messages').replaceChildren(); $('welcome-screen').hidden = true; $('chat-messages').hidden = false; $('source-panel').hidden = true;
@@ -232,7 +245,7 @@
     const audioKey = String(++speechKey);
     const originalDocuments = data.query_metadata?.documents;
     const canRegenerate = Array.isArray(originalDocuments) && originalDocuments.length > 0 && ['gemini', 'no_evidence', 'retrieval_only'].includes(data.mode);
-    const modes = {gemini:'Answer with document evidence', no_evidence:'Insufficient evidence', retrieval_only:'Source passages · generation unavailable', provider_error:'AI generation error', retrieval_failure:'Retrieval error', validation_error:'Check your request', processing:'Document processing', busy:'Request in progress', network_error:'Connection error'};
+    const modes = {chat:'General chat · Gemini', gemini:'Answer with document evidence', no_evidence:'Insufficient evidence', retrieval_only:'Source passages · generation unavailable', provider_error:'AI generation error', retrieval_failure:'Retrieval error', validation_error:'Check your request', processing:'Document processing', busy:'Request in progress', network_error:'Connection error'};
     turn.innerHTML = `<div class="user-message"><div class="user-bubble">${escape(data.question)}</div></div><div class="assistant-heading"><span class="assistant-mark">${icon('doc')}</span> OWN GPT <span class="mode-label ${['provider_error','retrieval_failure'].includes(data.mode) ? 'warning' : ''}">${escape(modes[data.mode] || data.mode)}</span></div><div class="answer-text">${formatAnswer(data.answer, sources.length)}</div>${sources.length ? sourceCards(sources) : ''}${data.query_metadata?.scope_note && sources.length ? `<p class="scope-note">${escape(data.query_metadata.scope_note)}${data.query_metadata.summary ? ' Longer documents are sampled across their content.' : ''}</p>` : ''}<div class="answer-tools" role="group" aria-label="Answer actions"><button data-listen="${audioKey}" aria-pressed="false" aria-describedby="audio-status-${audioKey}">${icon('listen')}Listen</button><button data-copy title="Copy the answer text">${icon('copy')}Copy Answer</button><button data-view-sources ${sources.length ? '' : 'disabled'} aria-expanded="false" title="${sources.length ? 'Expand the retrieved passages for this answer' : 'No sources were retrieved for this answer'}">${icon('book')}View Sources</button>${canRegenerate ? `<button data-regenerate data-documents="${escape(JSON.stringify(originalDocuments))}" title="Ask again using this answer's original document selection; adds a new answer">${icon('refresh')}Regenerate Answer</button>` : ''}<button data-export title="Download this answer and its source passages">${icon('download')}Export</button>${data.created_at ? `<time datetime="${escape(data.created_at)}">${new Date(data.created_at).toLocaleTimeString(undefined, {hour:'2-digit', minute:'2-digit'})}</time>` : ''}</div><p class="audio-status" id="audio-status-${audioKey}" role="status" hidden></p>`;
     turn.addEventListener('click', async e => {
       const source = e.target.closest('[data-source]'); if (source) { previewSource(sources[Number(source.dataset.source)]); return; }
@@ -262,21 +275,25 @@
     updateAudioControls(); updateRegenerateControls(); return turn;
   }
   function scrollBottom() { requestAnimationFrame(() => { $('message-scroll').scrollTop = $('message-scroll').scrollHeight; }); }
-  function setBusy(busy) { state.busy = busy; $('question-input').readOnly = busy; $('question-form').setAttribute('aria-busy', String(busy)); $('send-btn').innerHTML = busy ? '<span class="spinner"></span><span>Reading…</span>' : icon('arrow') + '<span>Ask Question</span>'; updateRegenerateControls(); document.querySelectorAll('.doc-check').forEach(input => input.disabled = busy || state.documents.find(d => d.id === Number(input.dataset.selectDoc))?.status !== 'ready'); renderScope(); renderConversations(); }
+  function setBusy(busy) { state.busy = busy; $('question-input').readOnly = busy; $('general-chat-toggle').disabled = busy; $('question-form').setAttribute('aria-busy', String(busy)); updateRegenerateControls(); document.querySelectorAll('.doc-check').forEach(input => input.disabled = busy || state.documents.find(d => d.id === Number(input.dataset.selectDoc))?.status !== 'ready'); renderScope(); renderConversations(); }
   async function ask(question) {
     question = question.trim(); if (!question || state.busy) return;
-    if (!state.selected.size) { notice('Upload a document and select it in your library first.'); return; }
+    if (state.chatMode === 'documents' && !state.selected.size) { notice('Select a ready document or switch to General Chat.'); return; }
     speech.stop();
     setBusy(true); $('welcome-screen').hidden = true; $('chat-messages').hidden = false;
-    const pending = document.createElement('article'); pending.className = 'turn'; pending.innerHTML = `<div class="user-message"><div class="user-bubble">${escape(question)}</div></div><div class="loading-message"><span class="spinner"></span><span>Reading your sources and preparing an answer…</span></div><div class="skeleton-lines" aria-hidden="true"><span></span><span></span><span></span></div>`;
+    const pending = document.createElement('article'); pending.className = 'turn'; pending.innerHTML = `<div class="user-message"><div class="user-bubble">${escape(question)}</div></div><div class="loading-message"><span class="spinner"></span><span>${state.chatMode === 'general' ? 'Thinking…' : 'Reading your sources and preparing an answer…'}</span></div><div class="skeleton-lines" aria-hidden="true"><span></span><span></span><span></span></div>`;
     $('chat-messages').appendChild(pending); $('question-input').value = ''; $('question-input').style.height = 'auto'; scrollBottom();
     try {
       const requestId = crypto.randomUUID();
-      const data = await api('/ask/', {question, documents:[...state.selected], conversation_id:state.conversation, request_id:requestId});
+      const data = await api('/ask/', {question, chat_mode:state.chatMode, documents:state.chatMode === 'general' ? [] : [...state.selected], conversation_id:state.conversation, request_id:requestId});
       state.conversation = data.conversation_id; appendTurn(data, pending); await refreshConversations();
     } catch (error) { appendTurn({question, answer:error.message, sources:[], mode:error.mode || 'network_error'}, pending); }
     finally { setBusy(false); scrollBottom(); $('question-input').focus(); }
   }
+  $('general-chat-toggle').addEventListener('change', e => {
+    state.chatMode = e.target.checked ? 'general' : 'documents';
+    renderScope();
+  });
   $('question-form').addEventListener('submit', e => { e.preventDefault(); ask($('question-input').value); });
   $('question-input').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); ask($('question-input').value); } });
   $('question-input').addEventListener('input', e => { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 150) + 'px'; });
