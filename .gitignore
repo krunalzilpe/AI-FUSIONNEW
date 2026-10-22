@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Django
+*.sqlite3
+/media/
+/static_collected/
+local_settings.py
+
+# Environment
+.env
+*.env
+!.env.example
+
+# Jupyter / IDE
+.ipynb_checkpoints/
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Embedding model cache
+.cache/
+huggingface_hub/
+
+# Logs
+*.log
+chroma_db/
+.uv-cache/
+.local-backup/
+test-results/
