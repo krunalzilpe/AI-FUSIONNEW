@@ -1,4 +1,4 @@
-# DocuMind AI
+# OWN GPT
 
 Your documents, understood. A Django document workspace for questions in English, Hindi, Roman Hinglish and Marathi, with original source passages beneath each answer.
 

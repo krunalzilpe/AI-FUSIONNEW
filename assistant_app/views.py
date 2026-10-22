@@ -361,4 +361,4 @@ def document_questions(request, document_id):
 
 @require_GET
 def health(request):
-    return JsonResponse({"status": "ok", "service": "DocuMind AI", "gemini_configured": gemini_configured()})
+    return JsonResponse({"status": "ok", "service": "OWN GPT", "gemini_configured": gemini_configured()})
