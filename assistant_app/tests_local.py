@@ -18,6 +18,16 @@ from scripts.runtime_secret import get_runtime_secret
 
 @override_settings(LLM_PROVIDER="local")
 class LocalGenerationTests(TestCase):
+    @override_settings(LLM_PROVIDER="gemma", GEMMA_MODEL="gemma-4-26b-a4b-it")
+    def test_hosted_open_model_uses_the_configured_model_without_local_inference(self):
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"}), patch(
+            "assistant_app.services.generation._generate_with_google_genai", return_value="12 times 8 is 96."
+        ) as hosted, patch("assistant_app.services.generation.generate_local") as local:
+            answer, mode = generate_chat_answer("What is 12 times 8?")
+        self.assertEqual((answer, mode), ("12 times 8 is 96.", "chat"))
+        self.assertEqual(hosted.call_args.args[1], ["gemma-4-26b-a4b-it"])
+        local.assert_not_called()
+
     def test_chat_without_api_credentials_never_calls_google(self):
         with patch.dict("os.environ", {"GEMINI_API_KEY": ""}), patch(
             "assistant_app.services.generation.generate_local", return_value="New Delhi is the capital of India."

@@ -17,6 +17,8 @@ Python · Django · JavaScript · SQLite · ChromaDB · Sentence Transformers ·
 
 The default model runs locally, without Gemini or API credits. It uses the existing open-source [Qwen3-4B-Instruct-2507](https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507) model through [llama.cpp](https://github.com/ggml-org/llama.cpp). Folio does not train a new foundation model.
 
+The Render deployment uses hosted Gemma 4 through Google's free API tier, subject to rate limits, using the existing server-side Google API key. Local Qwen mode remains independent of that key. Provider names and setup details stay out of the normal interface.
+
 ## Windows quick start
 
 Use Python 3.12. Keep an existing `.venv` and `.env`.

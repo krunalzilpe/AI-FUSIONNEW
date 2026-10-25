@@ -16,7 +16,7 @@ The application runs behind Cloudflare Tunnel with Waitress, DEBUG disabled, an 
 
 A server with enough RAM can run Django and the quantized model together. Start llama.cpp on loopback or a private network, set `LLM_PROVIDER=local`, and point `LOCAL_LLM_URL` at it. Local inference removes per-request API credits; server resources still need to be provided.
 
-The existing Render Free Blueprint uses the optional Gemini backend. Its 512 MB memory allowance is unsuitable for this local LLM, and may also be insufficient for the embedding model. No paid upgrade is created automatically. Creating a new Docker Space on Hugging Face currently requires a paid plan; do not describe it as a free deployment option.
+The existing Render Free Blueprint uses hosted Gemma 4 with the existing server-side Google API key. Google currently lists Gemma 4 input/output as free of charge, with rate limits; see [official pricing](https://ai.google.dev/gemini-api/docs/pricing#gemma-4). The 512 MB allowance is unsuitable for the local Qwen LLM, and may also be insufficient for the embedding model. No paid upgrade is created automatically. Creating a new Docker Space on Hugging Face currently requires a paid plan; do not describe it as a free deployment option.
 
 ## Production configuration
 

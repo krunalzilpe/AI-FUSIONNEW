@@ -294,7 +294,7 @@ class QueryAndGenerationTests(TestCase):
         with patch.dict("os.environ", {"GEMINI_API_KEY": ""}):
             answer, mode = generate_chat_answer("Hi")
         self.assertEqual(mode, "provider_error")
-        self.assertIn("GEMINI_API_KEY", answer)
+        self.assertIn("not configured", answer)
 
     def test_multilingual_e5_uses_role_prefixes_for_documents_and_queries(self):
         with override_settings(EMBEDDING_MODEL="intfloat/multilingual-e5-small"):

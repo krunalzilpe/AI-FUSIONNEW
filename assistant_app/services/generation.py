@@ -22,7 +22,9 @@ def generation_configured():
 
 
 def generation_model():
-    return settings.LOCAL_LLM_MODEL if settings.LLM_PROVIDER == "local" else settings.GEMINI_MODEL
+    if settings.LLM_PROVIDER == "local":
+        return settings.LOCAL_LLM_MODEL
+    return settings.GEMMA_MODEL if settings.LLM_PROVIDER == "gemma" else settings.GEMINI_MODEL
 
 
 def _language_instruction(language):
@@ -39,7 +41,7 @@ def _generate(prompt, generator=None):
     if settings.LLM_PROVIDER == "local":
         return generate_local(prompt)
     return (generator or _generate_with_google_genai)(
-        prompt, [settings.GEMINI_MODEL], os.getenv("GEMINI_API_KEY", "").strip()
+        prompt, [generation_model()], os.getenv("GEMINI_API_KEY", "").strip()
     )
 
 
@@ -90,22 +92,22 @@ def _generation_error(exc, sources=()):
     code = getattr(exc, "code", None)
     logger.warning("Gemini generation failed (%s, status=%s)", type(exc).__name__, code)
     reason = {
-        400: "Gemini rejected this request. Check the configured model and API setup.",
-        401: "Gemini authentication failed. Check the API key.",
-        403: "Gemini denied access. Check the API key and its permissions.",
-        404: "The configured Gemini model is unavailable. Check GEMINI_MODEL.",
-        429: "Gemini's rate or quota limit was reached. Wait before retrying and check the API quota.",
-        500: "Gemini returned a server error after a retry. Try again shortly.",
-        503: "Gemini is temporarily unavailable after a retry. Try again shortly.",
-        504: "Gemini timed out after a retry. Try again shortly.",
-    }.get(code, "AI generation failed. Check Gemini credentials, model availability and network access, then retry.")
+        400: "Folio could not process this question. Please try rephrasing it.",
+        401: "Folio is unavailable. Please ask the workspace owner to check its configuration.",
+        403: "Folio is unavailable. Please ask the workspace owner to check its configuration.",
+        404: "Folio is unavailable. Please ask the workspace owner to check its configuration.",
+        429: "Folio reached a rate or quota limit. Please wait before retrying.",
+        500: "Folio is temporarily unavailable. Try again shortly.",
+        503: "Folio is temporarily unavailable. Try again shortly.",
+        504: "Folio took too long to answer. Please try again.",
+    }.get(code, "Folio could not prepare an answer. Please try again shortly.")
     suffix = " The retrieved passages remain available below." if sources else ""
     return reason + suffix, list(sources), "provider_error"
 
 
 def generate_chat_answer(question, history=(), query_info=None, generator=None):
     if not generation_configured():
-        return "General chat is unavailable until GEMINI_API_KEY is configured.", "provider_error"
+        return "Folio's chat service is not configured yet. Please contact the workspace owner.", "provider_error"
     query_info = query_info or {}
     language = query_info.get("language_hint", "Auto / English")
     transcript = "\n".join(
@@ -150,7 +152,7 @@ def generate_answer(question, results, query_info=None, generator=None):
     if not relevant:
         return insufficient_answer(language), [], "no_evidence"
     if not generation_configured():
-        return ("Relevant source passages were retrieved. AI generation is unavailable until GEMINI_API_KEY is configured. You can read the original evidence below.", relevant, "retrieval_only")
+        return ("Relevant source passages were retrieved. Answer generation is unavailable. You can read the original evidence below.", relevant, "retrieval_only")
     context = "\n\n".join(
         f"[Source {i+1} | {r['chunk'].document.title} | "
         + (f"page {r['chunk'].page_number}" if r['chunk'].document.file_type == "pdf" else f"TXT chunk {r['chunk'].chunk_index+1}")
@@ -185,8 +187,8 @@ Answer:"""
         answer, mode = _validate_generated_answer(generated, relevant)
         if mode == "no_evidence":
             return insufficient_answer(language), [], mode
-        if mode == "gemini" and settings.LLM_PROVIDER == "local":
-            mode = "local"
+        if mode == "gemini" and settings.LLM_PROVIDER in {"local", "gemma"}:
+            mode = settings.LLM_PROVIDER
         return answer, relevant, mode
     except Exception as exc:
         return _generation_error(exc, relevant)

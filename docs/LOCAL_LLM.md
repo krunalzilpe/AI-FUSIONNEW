@@ -36,4 +36,6 @@ Use an equivalent self-hosted chat-completions server by changing the URL/model.
 
 Gemini is optional: set `LLM_PROVIDER=gemini`, configure `GEMINI_API_KEY` and an available `GEMINI_MODEL`, then restart. Provider failures and quota errors remain separate from insufficient document evidence.
 
+Render defaults to `LLM_PROVIDER=gemma` and `GEMMA_MODEL=gemma-4-26b-a4b-it`. This hosted open model uses the same server-side Google key through the free tier. It does not run the 4B model inside Render Free. The local launcher also generates a private authentication token for its loopback model service; that token is unrelated to paid API credits and is never sent to the browser.
+
 Model source and license: [Qwen model card, Apache 2.0](https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507). Runtime: [llama.cpp releases](https://github.com/ggml-org/llama.cpp/releases). This is integration of an existing model, not a claim that Folio trained its own LLM.

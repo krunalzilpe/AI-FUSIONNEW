@@ -10,7 +10,9 @@ services:
     healthCheckPath: /health/
     envVars:
       - key: LLM_PROVIDER
-        value: gemini
+        value: gemma
+      - key: GEMMA_MODEL
+        value: gemma-4-26b-a4b-it
       - key: DJANGO_DEBUG
         value: "False"
       - key: DJANGO_SECRET_KEY

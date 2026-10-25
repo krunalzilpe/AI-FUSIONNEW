@@ -101,10 +101,11 @@ RAG_MIN_SCORE = float(os.getenv("RAG_MIN_SCORE", "0.30"))
 RAG_ASYNC = True
 GEMINI_TIMEOUT_MS = int(os.getenv("GEMINI_TIMEOUT_MS", "45000"))
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini" if os.getenv("RENDER") == "true" else "local").strip().lower()
-if LLM_PROVIDER not in {"local", "gemini"}:
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemma" if os.getenv("RENDER") == "true" else "local").strip().lower()
+if LLM_PROVIDER not in {"local", "gemini", "gemma"}:
     from django.core.exceptions import ImproperlyConfigured
-    raise ImproperlyConfigured("LLM_PROVIDER must be local or gemini.")
+    raise ImproperlyConfigured("LLM_PROVIDER must be local, gemma, or gemini.")
+GEMMA_MODEL = os.getenv("GEMMA_MODEL", "gemma-4-26b-a4b-it")
 LOCAL_LLM_URL = os.getenv("LOCAL_LLM_URL", "http://127.0.0.1:8081")
 LOCAL_LLM_MODEL = os.getenv("LOCAL_LLM_MODEL", "folio-local")
 LOCAL_LLM_API_KEY = os.getenv("LOCAL_LLM_API_KEY", "")
