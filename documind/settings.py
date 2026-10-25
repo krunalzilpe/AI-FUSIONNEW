@@ -101,7 +101,7 @@ RAG_MIN_SCORE = float(os.getenv("RAG_MIN_SCORE", "0.30"))
 RAG_ASYNC = True
 GEMINI_TIMEOUT_MS = int(os.getenv("GEMINI_TIMEOUT_MS", "45000"))
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "local").strip().lower()
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini" if os.getenv("RENDER") == "true" else "local").strip().lower()
 if LLM_PROVIDER not in {"local", "gemini"}:
     from django.core.exceptions import ImproperlyConfigured
     raise ImproperlyConfigured("LLM_PROVIDER must be local or gemini.")
