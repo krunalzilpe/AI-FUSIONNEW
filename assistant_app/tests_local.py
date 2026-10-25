@@ -13,6 +13,7 @@ from .middleware import RequestLimitMiddleware
 from .models import Document, TextChunk
 from .services.generation import generate_answer, generate_chat_answer
 from .services.local_llm import LocalModelError, generate
+from scripts.runtime_secret import get_runtime_secret
 
 
 @override_settings(LLM_PROVIDER="local")
@@ -112,6 +113,22 @@ class LocalTransportTests(SimpleTestCase):
             with self.subTest(payload=payload), patch("assistant_app.services.local_llm.urlopen", return_value=response):
                 with self.assertRaises(LocalModelError):
                     generate("Hello")
+
+
+class RuntimeSecretTests(SimpleTestCase):
+    def test_existing_valid_secret_is_preserved(self):
+        key = "existing-safe-key-" + "x" * 60
+        self.assertEqual(get_runtime_secret({"DJANGO_SECRET_KEY": key}), key)
+        self.assertEqual(get_runtime_secret({"SECRET_KEY": key}), key)
+
+    def test_missing_or_invalid_secret_is_generated_and_reused(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "signing.key"
+            first = get_runtime_secret({"DJANGO_SECRET_KEY": "change-me"}, path)
+            second = get_runtime_secret({}, path)
+            self.assertGreaterEqual(len(first), 50)
+            self.assertEqual(first, second)
+            self.assertNotEqual(first, "change-me")
 
 
 @override_settings(RATE_LIMIT_ENABLED=True, CHAT_REQUESTS_PER_MINUTE=2)

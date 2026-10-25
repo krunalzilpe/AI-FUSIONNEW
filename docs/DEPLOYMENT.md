@@ -21,6 +21,7 @@ The existing Render Free Blueprint uses the optional Gemini backend. Its 512 MB 
 ## Production configuration
 
 - Set a long random `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=False`, exact `ALLOWED_HOSTS`, and HTTPS `CSRF_TRUSTED_ORIGINS`.
+- The container startup preserves a valid configured signing key. If none is valid, it generates a private key in `.cache/django-secret.key` and captures it without printing it. Set `DJANGO_SECRET_KEY_FILE` to a persistent private path for durable storage; Render Free resets local files on instance replacement.
 - Use a trusted HTTPS reverse proxy. Set `FOLIO_HTTPS_PROXY=true` only when the app is bound behind that proxy; never expose an untrusted forwarded-protocol header directly.
 - Run `python manage.py migrate` and `python manage.py collectstatic --noinput`.
 - On Linux, use the Gunicorn startup script. On Windows, `python scripts/serve.py --port 8004` uses Waitress on loopback.
