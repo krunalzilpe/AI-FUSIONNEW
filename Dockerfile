@@ -21,7 +21,7 @@ RUN python -m pip install --upgrade pip \
 
 COPY . .
 # Bake public models and static assets into the image, never local user data.
-RUN DJANGO_DEBUG=True python scripts/cache_embedding_model.py \
+RUN EMBEDDING_BACKEND=onnx DJANGO_DEBUG=True python scripts/cache_embedding_model.py \
     && DJANGO_DEBUG=True python scripts/setup_ocr.py \
     && DJANGO_DEBUG=True python manage.py collectstatic --noinput
 

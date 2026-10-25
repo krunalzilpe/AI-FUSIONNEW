@@ -2,21 +2,19 @@
 
 Folio is a full-stack Django application. Static-only hosting cannot run its Python backend or local model.
 
-## Current public demo
+## Public demo
 
-A temporary HTTPS preview was verified on 25 October 2026 at:
+The existing Render service is at https://documind-ai-fusionnew-1gbe.onrender.com/ and deploys from `krunalzilpe/AI-FUSIONNEW`, branch `main`.
 
-https://boxing-exhaust-serving-avenue.trycloudflare.com
-
-The application runs behind Cloudflare Tunnel with Waitress, DEBUG disabled, an exact allowed hostname, a trusted HTTPS origin, secure cookies, CSRF checks, CSP script nonces, and request limits. The model endpoint stays bound to loopback.
-
-**This is a temporary public demo, not permanent hosting.** It stops when the laptop, model, app, or tunnel stops; the hostname changes when a new quick tunnel is created. See [Cloudflare's quick-tunnel limits](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/).
+Render Free can sleep when idle. Uploaded files, SQLite history, and indexes use its temporary filesystem and can reset on restarts or deploys. Use persistent storage for durable accounts or documents.
 
 ## Hosting without API credits
 
 A server with enough RAM can run Django and the quantized model together. Start llama.cpp on loopback or a private network, set `LLM_PROVIDER=local`, and point `LOCAL_LLM_URL` at it. Local inference removes per-request API credits; server resources still need to be provided.
 
-The existing Render Free Blueprint uses hosted Gemma 4 with the existing server-side Google API key. Google currently lists Gemma 4 input/output as free of charge, with rate limits; see [official pricing](https://ai.google.dev/gemini-api/docs/pricing#gemma-4). The 512 MB allowance is unsuitable for the local Qwen LLM, and may also be insufficient for the embedding model. No paid upgrade is created automatically. Creating a new Docker Space on Hugging Face currently requires a paid plan; do not describe it as a free deployment option.
+The Render Free Blueprint uses hosted Gemma 4 with the existing server-side Google API key. Google currently lists Gemma 4 input/output as free of charge, with rate limits; see [official pricing](https://ai.google.dev/gemini-api/docs/pricing#gemma-4). The 512 MB allowance is unsuitable for the local Qwen LLM. No paid upgrade is created automatically.
+
+Document embeddings stay local: Render selects `EMBEDDING_BACKEND=onnx`, a pinned INT8 export of multilingual E5 small. It runs through ONNX Runtime without loading PyTorch and limits inference to two passages at a time. Docker caches the tokenizer and weights at build time; uploads need no model download. `EMBEDDING_BACKEND=pytorch` remains available on larger local machines. Each backend uses a separate index signature; changing it requires reindexing documents.
 
 ## Production configuration
 

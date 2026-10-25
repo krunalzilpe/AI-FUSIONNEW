@@ -92,6 +92,10 @@ if os.getenv("FOLIO_HTTPS_PROXY", "false").lower() == "true":
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "intfloat/multilingual-e5-small")
+EMBEDDING_BACKEND = os.getenv("EMBEDDING_BACKEND", "onnx" if os.getenv("RENDER") == "true" else "pytorch").strip().lower()
+if EMBEDDING_BACKEND not in {"pytorch", "onnx"}:
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured("EMBEDDING_BACKEND must be pytorch or onnx.")
 EMBEDDING_MAX_TOKENS = int(os.getenv("EMBEDDING_MAX_TOKENS", "512"))
 CHROMA_DB_PATH = os.getenv("CHROMA_DB_PATH", str(BASE_DIR / "chroma_db"))
 RAG_CHUNK_SIZE = int(os.getenv("RAG_CHUNK_SIZE", "900"))

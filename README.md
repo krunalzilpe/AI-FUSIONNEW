@@ -2,6 +2,8 @@
 
 A full-stack study and document assistant. Chat without uploading anything, work through a topic, practice for exams, or add a PDF/TXT file for answers with original source passages.
 
+[Open Folio](https://documind-ai-fusionnew-1gbe.onrender.com/) · [Deployment notes](docs/DEPLOYMENT.md)
+
 ![Folio workspace](docs/folio-workspace.png)
 
 Python · Django · JavaScript · SQLite · ChromaDB · Sentence Transformers · llama.cpp · Qwen
@@ -18,6 +20,8 @@ Python · Django · JavaScript · SQLite · ChromaDB · Sentence Transformers ·
 The default model runs locally, without Gemini or API credits. It uses the existing open-source [Qwen3-4B-Instruct-2507](https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507) model through [llama.cpp](https://github.com/ggml-org/llama.cpp). Folio does not train a new foundation model.
 
 The Render deployment uses hosted Gemma 4 through Google's free API tier, subject to rate limits, using the existing server-side Google API key. Local Qwen mode remains independent of that key. Provider names and setup details stay out of the normal interface.
+
+Render runs multilingual document embeddings locally with pinned INT8 ONNX weights and bounded batches, keeping PyTorch out of its small web process. Local desktop mode can use Sentence Transformers. Changing embedding backends creates a separate index space.
 
 ## Windows quick start
 
