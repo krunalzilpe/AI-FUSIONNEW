@@ -30,10 +30,10 @@ def _load_model(name, max_tokens):
         snapshot = hub / "snapshots" / ref.read_text().strip()
         required = ["modules.json", "config.json", "tokenizer.json", "1_Pooling/config.json"]
         if all((snapshot / file).is_file() for file in required) and any((snapshot / file).is_file() for file in ["model.safetensors", "pytorch_model.bin"]):
-            model = SentenceTransformer(str(snapshot), local_files_only=True)
+            model = SentenceTransformer(str(snapshot), local_files_only=True, trust_remote_code=False)
             break
     if model is None:
-        model = SentenceTransformer(name, cache_folder=str(cache))
+        model = SentenceTransformer(name, cache_folder=str(cache), trust_remote_code=False)
     # The multilingual model defaults to 128 tokens, truncating ordinary 900-character
     # chunks. Its encoder supports up to 512; make this explicit and version the index.
     model.max_seq_length = min(max_tokens, model[0].auto_model.config.max_position_embeddings)

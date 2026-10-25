@@ -75,7 +75,7 @@ class WorkspaceTests(TestCase):
     def test_empty_and_malformed_selection_never_searches_all_documents(self):
         for selection in [[], 0, [True], ["bad"], [self.doc.id, "bad"]]:
             with self.subTest(selection=selection), patch("assistant_app.views.retrieve") as retrieval:
-                self.assertEqual(self.post(question="Budget?", documents=selection).status_code, 400)
+                self.assertEqual(self.post(question="Budget?", chat_mode="documents", documents=selection).status_code, 400)
                 retrieval.assert_not_called()
 
     def make_turn(self, request_id=None):
@@ -271,6 +271,7 @@ class IngestionTests(TestCase):
         self.model.encode.assert_called_once()
 
 
+@override_settings(LLM_PROVIDER="gemini")
 class QueryAndGenerationTests(TestCase):
     def test_general_chat_calls_gemini_without_document_citations(self):
         from .services.generation import generate_chat_answer

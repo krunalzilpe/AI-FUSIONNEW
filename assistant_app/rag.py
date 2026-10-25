@@ -1,4 +1,4 @@
-"""RAG orchestration, retaining the project's public service entry points."""
+"""Document indexing, retrieval, and grounded answers."""
 import logging
 from django.conf import settings
 from django.db import transaction
@@ -7,7 +7,6 @@ from .services.extraction import extract_pages, split_text
 from .services.vectorstore import get_chroma_collection, delete_document_vectors
 from .services.queries import understand_query
 from .services.generation import (
-    INSUFFICIENT_EVIDENCE_ANSWER, _validate_generated_answer,
     _generate_with_google_genai, generate_answer as _answer,
 )
 logger = logging.getLogger(__name__)
@@ -83,7 +82,7 @@ def _normalize_document_scope(documents):
     for value in documents:
         if isinstance(value, bool) or not (isinstance(value, int) or isinstance(value, str) and value.isdecimal()):
             return []
-        if int(value) <= 0:
+        if not 0 < int(value) <= 9223372036854775807:
             return []
         ids.add(int(value))
     return sorted(ids)
@@ -153,11 +152,6 @@ def retrieve(question, documents=None, top_k=None, query_info=None):
 
 def generate_answer(question, results, query_info=None):
     return _answer(question, results, query_info, generator=_generate_with_google_genai)
-
-
-def generate_document_summary(document):
-    info = understand_query("Summarize this document")
-    return generate_answer(info["original"], retrieve(info["original"], [document.id], query_info=info), info)[0]
 
 
 def generate_suggested_questions(document):

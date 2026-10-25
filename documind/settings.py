@@ -30,10 +30,12 @@ INSTALLED_APPS = [
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "assistant_app.middleware.SecurityHeadersMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
+    "assistant_app.middleware.RequestLimitMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -71,14 +73,23 @@ STORAGES = {
 }
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
 X_FRAME_OPTIONS = "DENY"
+SECURE_REFERRER_POLICY = "same-origin"
+RATE_LIMIT_ENABLED = not DEBUG
+CHAT_REQUESTS_PER_MINUTE = int(os.getenv("CHAT_REQUESTS_PER_MINUTE", "20"))
+UPLOADS_PER_MINUTE = int(os.getenv("UPLOADS_PER_MINUTE", "10"))
 if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 3600
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    if SECRET_KEY == "dev-only-change-me":
+    if SECRET_KEY in {"dev-only-change-me", "replace-with-a-long-random-secret", "change-me"} or len(SECRET_KEY) < 50:
         from django.core.exceptions import ImproperlyConfigured
         raise ImproperlyConfigured("Set DJANGO_SECRET_KEY when DEBUG=False.")
+if os.getenv("FOLIO_HTTPS_PROXY", "false").lower() == "true":
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "intfloat/multilingual-e5-small")
 EMBEDDING_MAX_TOKENS = int(os.getenv("EMBEDDING_MAX_TOKENS", "512"))
@@ -90,6 +101,15 @@ RAG_MIN_SCORE = float(os.getenv("RAG_MIN_SCORE", "0.30"))
 RAG_ASYNC = True
 GEMINI_TIMEOUT_MS = int(os.getenv("GEMINI_TIMEOUT_MS", "45000"))
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "local").strip().lower()
+if LLM_PROVIDER not in {"local", "gemini"}:
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured("LLM_PROVIDER must be local or gemini.")
+LOCAL_LLM_URL = os.getenv("LOCAL_LLM_URL", "http://127.0.0.1:8081")
+LOCAL_LLM_MODEL = os.getenv("LOCAL_LLM_MODEL", "folio-local")
+LOCAL_LLM_API_KEY = os.getenv("LOCAL_LLM_API_KEY", "")
+LOCAL_LLM_TIMEOUT_SECONDS = int(os.getenv("LOCAL_LLM_TIMEOUT_SECONDS", "180"))
+LOCAL_LLM_MAX_TOKENS = int(os.getenv("LOCAL_LLM_MAX_TOKENS", "1024"))
 
 # OCR is local and runs only for PDF pages with no/very little embedded text.
 OCR_ENABLED = os.getenv("OCR_ENABLED", "true").lower() == "true"

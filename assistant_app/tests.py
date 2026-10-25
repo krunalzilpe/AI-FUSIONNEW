@@ -2,7 +2,7 @@ import json
 import numpy as np
 from unittest.mock import Mock, patch
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from .models import Document, TextChunk
 from .rag import (
@@ -97,6 +97,7 @@ class RetrievalScopeTests(TestCase):
                 retrieve("question")
 
 
+@override_settings(LLM_PROVIDER="gemini")
 class GroundedAnswerTests(TestCase):
     def setUp(self):
         doc = Document.objects.create(
@@ -176,7 +177,7 @@ class AskQuestionViewTests(TestCase):
 
     def test_retrieval_failure_is_reported_as_service_error(self):
         with patch("assistant_app.views.retrieve", side_effect=RuntimeError("offline")):
-            response = self.client.post("/ask/", data=json.dumps({"question": "Which sensor is used?"}), content_type="application/json")
+            response = self.client.post("/ask/", data=json.dumps({"question": "Which sensor is used?", "documents": [self.doc.id]}), content_type="application/json")
 
         self.assertEqual(response.status_code, 503)
         self.assertFalse(json.loads(response.content)["success"])

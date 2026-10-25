@@ -17,8 +17,8 @@ const turns = [
 ];
 const flush = async () => { for (let i=0; i<4; i++) await new Promise(resolve => setImmediate(resolve)); };
 
-function setup({saved, speech = true, voices} = {}) {
-  const initial = {documents:docs, conversations:[{id:7,title:'Saved conversation'}], display_name:'Guest', workspace_key:'guest:test', gemini_configured:false};
+function setup({saved, speech = true, voices, documents = docs} = {}) {
+  const initial = {documents, conversations:[{id:7,title:'Saved conversation'}], display_name:'Guest', workspace_key:'guest:test', llm_provider:'local', gemini_configured:false};
   const html = template.replace('{% csrf_token %}', '<input name="csrfmiddlewaretoken" value="test">')
     .replace('{{ initial|json_script:"workspace-initial" }}', `<script id="workspace-initial" type="application/json">${JSON.stringify(initial)}</script>`)
     .replace(/{%[\s\S]*?%}/g, '');
@@ -139,4 +139,47 @@ test('system preference remains opt-in and unavailable original documents disabl
   assert.equal(f.d.querySelector('[data-regenerate]').disabled, true);
   assert.match(f.d.querySelector('[data-regenerate]').title,/removed/);
   assert.equal(f.d.querySelectorAll('[data-regenerate]')[1].disabled, false); f.close();
+});
+
+test('no document is required to send a chat and backend status controls stay out of the UI', async () => {
+  const f = setup({documents:[]});
+  assert.equal(f.d.getElementById('general-chat-toggle'), null);
+  assert.equal(f.d.getElementById('connection-status'), null);
+  assert.equal(f.d.getElementById('send-btn').disabled, false);
+  f.d.getElementById('question-input').value = 'Explain photosynthesis.';
+  f.d.getElementById('question-form').dispatchEvent(new f.w.Event('submit', {cancelable:true}));
+  await flush();
+  const request = f.requests.find(r => r.url === '/ask/');
+  assert.equal(request.body.chat_mode, 'general');
+  assert.equal(request.body.documents.length, 0);
+  f.close();
+});
+
+test('removing every source and starting a new chat both restore document-free chat', async () => {
+  const f = setup();
+  for (const id of [1, 2]) {
+    const input = f.d.querySelector(`[data-select-doc="${id}"]`);
+    input.checked = false; input.dispatchEvent(new f.w.Event('change', {bubbles:true}));
+  }
+  assert.equal(f.d.getElementById('send-btn').disabled, false);
+  f.d.getElementById('question-input').value = 'Hello';
+  f.d.getElementById('question-form').dispatchEvent(new f.w.Event('submit', {cancelable:true}));
+  await flush();
+  assert.equal(f.requests.find(r => r.url === '/ask/').body.chat_mode, 'general');
+  f.d.getElementById('new-chat-btn').click();
+  assert.equal(f.d.querySelectorAll('[data-select-doc]:checked').length, 0);
+  assert.equal(f.d.getElementById('send-btn').disabled, false);
+  f.close();
+});
+
+test('questions, answers, and filenames render as text instead of executing HTML', async () => {
+  const f = setup({documents:[{...docs[0],title:'<img src=x onerror=alert(1)>.pdf'}]});
+  assert.equal(f.d.querySelector('#doc-library img'), null);
+  f.w.fetch = async url => ({ok:true,json:async () => url === '/conversations/' ? {conversations:[]} : {question:'<script>alert(1)</script>', answer:'<img src=x onerror=alert(1)>', sources:[], mode:'chat'}});
+  f.d.getElementById('question-input').value = '<script>alert(1)</script>';
+  f.d.getElementById('question-form').dispatchEvent(new f.w.Event('submit', {cancelable:true}));
+  await flush();
+  assert.equal(f.d.querySelector('#chat-messages script, #chat-messages img'), null);
+  assert.match(f.d.querySelector('.answer-text').textContent, /<img/);
+  f.close();
 });

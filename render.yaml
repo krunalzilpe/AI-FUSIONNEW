@@ -1,7 +1,7 @@
 # Free demonstration: local documents and history reset when the service restarts.
 services:
   - type: web
-    name: documind-ai-fusionnew
+    name: folio-workspace
     runtime: docker
     plan: free
     repo: https://github.com/krunalzilpe/AI-FUSIONNEW
@@ -9,6 +9,8 @@ services:
     dockerfilePath: ./Dockerfile
     healthCheckPath: /health/
     envVars:
+      - key: LLM_PROVIDER
+        value: gemini
       - key: DJANGO_DEBUG
         value: "False"
       - key: DJANGO_SECRET_KEY

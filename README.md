@@ -1,111 +1,77 @@
-# OWN GPT
+# Folio
 
-Your documents, understood. A Django document workspace for questions in English, Hindi, Roman Hinglish and Marathi, with original source passages beneath each answer.
+A full-stack study and document assistant. Chat without uploading anything, work through a topic, practice for exams, or add a PDF/TXT file for answers with original source passages.
 
-Built for the AI-FUSION Webathon using **Python, Django templates, Bootstrap 5, vanilla JavaScript, SQLite, Sentence Transformers, ChromaDB, pypdf and the official Google Gen AI SDK**. This enhancement preserves the existing Django project and its public RAG entry points.
+![Folio workspace](docs/folio-workspace.png)
 
-## What works
+Python · Django · JavaScript · SQLite · ChromaDB · Sentence Transformers · llama.cpp · Qwen
 
-- PDF/TXT uploads up to 15 MB, content-hash deduplication within each workspace, UTF-8 validation, malformed/empty-PDF handling and local OCR for scanned pages (English/Hindi/Marathi models).
-- Two chat modes: evidence-grounded answers with document citations, or open-ended Gemini chat without requiring an upload. General-chat follow-ups keep recent conversation context.
-- Background processing with persisted extraction, embedding and indexing states. Uses the multilingual E5-small encoder with its required query/document prefixes; the first model download can take several minutes.
-- Real normalized dense embeddings and persistent ChromaDB cosine search. Each embedding/chunking configuration has a separate collection; incompatible indexes are never mixed.
-- Real PDF physical page numbers, TXT chunk numbers, complete original retrieved passages, genuine cosine scores or explicitly labelled coverage samples.
-- Source previews and ownership-checked original files. PDF links include `#page=N`; navigation depends on the browser's PDF viewer.
-- Gemini receives selected retrieved excerpts. Invalid/missing citations are rejected. Insufficient evidence, processing failures, retrieval failures, missing credentials and API failures have separate outcomes.
-- Conservative language/page/summary hints and fresh retrieval for follow-up questions. The original user question is always preserved.
-- Saved conversations with titles, rename, reopen, clear, delete, ordered user/assistant roles, timestamps and source snapshots tied to their original answers.
-- Personal guest-session document libraries and history. Authenticated Django users also receive a distinct server-side ownership scope; this app does not add public registration/login screens.
-- A light-first workspace with a system-aware dark theme, persistent appearance preference, mobile navigation, document filtering, source cards, copy/export and duplicate-submission protection.
+## What it does
 
-There is no guarantee of error-free AI answers. Retrieval similarity is not a calibrated confidence score, and citation-number validation cannot prove every generated claim follows from its source. Read the passages when accuracy matters.
+- Normal chat without a PDF or a mode switch.
+- Concept explanations, revision help, and one-question-at-a-time exam practice.
+- Optional PDF/TXT uploads up to 15 MB, background indexing, duplicate detection, and local OCR for scanned PDFs.
+- Multilingual semantic search, physical PDF page references, original passages, and protected source previews.
+- Saved conversations, answer export/copy, and local-device text-to-speech when available.
+- Responsive light/dark themes with a saved appearance preference.
 
-## Windows setup
+The default model runs locally, without Gemini or API credits. It uses the existing open-source [Qwen3-4B-Instruct-2507](https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507) model through [llama.cpp](https://github.com/ggml-org/llama.cpp). Folio does not train a new foundation model.
 
-Use **Python 3.12** for the tested dependency stack. Run these commands from the project directory:
+## Windows quick start
+
+Use Python 3.12. Keep an existing `.venv` and `.env`.
 
 ```powershell
 py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 Copy-Item .env.example .env
-```
-
-If `.venv` and `.env` already exist, preserve them. With uv, installation can instead use `uv pip install --python .venv\Scripts\python.exe -r requirements.txt`.
-
-Edit `.env` and set `GEMINI_API_KEY`. `GEMINI_MODEL` must be a model available to that key. The example defaults to `gemini-flash-latest`; an existing configured model is respected. No deprecated Gemini SDK is used. `GEMINI_TIMEOUT_MS` bounds individual API requests; transient HTTP errors receive at most one retry, so a complete operation can take roughly twice that timeout.
-
-```powershell
 .\.venv\Scripts\python.exe manage.py migrate
-.\.venv\Scripts\python.exe manage.py check
-.\.venv\Scripts\python.exe manage.py runserver 127.0.0.1:8001
+.\.venv\Scripts\python.exe manage.py collectstatic --noinput
+.\.venv\Scripts\python.exe scripts/setup_local_llm.py
+.\.venv\Scripts\python.exe scripts/run_local.py
 ```
 
-Open **http://127.0.0.1:8001/**. Port 8001 avoids conflicting with an older development instance on port 8000. `DJANGO_DEBUG` is the explicit development/production switch; it takes precedence over legacy `DEBUG`. The IDE's `DEBUG=release` mode is not treated as a Django boolean.
+Open **http://127.0.0.1:8003/**. The one-time model download is about 2.5 GB; its runtime and model checksums are verified. The model runs on CPU, so a dedicated GPU is optional. The embedding model is cached on first document upload. See [local model setup](docs/LOCAL_LLM.md) and [OCR setup](docs/OCR.md).
 
-On first upload, the multilingual E5-small model downloads into `.cache/models/`. Complete cached snapshots are loaded locally on subsequent starts. Embeddings remain local; retrieved excerpts are sent to Gemini only when generating an answer. Without a key, the app shows original retrieved passages and clearly identifies generation as unavailable.
-
-For scanned PDFs, run `.venv\Scripts\python.exe scripts/setup_ocr.py` once after installing dependencies, then restart Django. See [OCR setup](docs/OCR.md).
-
-## Existing documents and embedding changes
-
-Pre-upgrade files and answers are **preserved**, with no automatic assignment to the first browser visitor. This prevents the old global library from leaking into a new guest session.
-
-1. Open Settings and copy its **Local recovery ID**.
-2. Assign the pre-upgrade library to that workspace using the local administrative command:
-
-```powershell
-.\.venv\Scripts\python.exe manage.py adopt_legacy --workspace-key "guest:PASTE-THE-ID-FROM-SETTINGS"
-.\.venv\Scripts\python.exe manage.py reindex_documents --all
-```
-
-Do not paste the illustrative placeholder literally. The recovery ID identifies a local workspace; it is not a login credential. The command requires local access to the project/database and should be run only by its operator.
-
-Changing `EMBEDDING_MODEL`, `EMBEDDING_MAX_TOKENS` or chunk settings requires reindexing. Existing documents show **Reindex required** until rebuilt. Use **Retry indexing** in the library or `reindex_documents --document 1`. Stop other ingestion jobs before running a bulk recovery. The same command recovers jobs interrupted by a server restart.
-
-Guest identity is tied to the Django session cookie (two weeks by default). Clearing cookies or changing browsers loses access to that guest identity. It is not a persistent cross-device account.
+No document selected means normal chat. Uploading/selecting a document uses its evidence. Remove its source chip or start a new conversation to return to normal chat.
 
 ## Architecture
 
 ```text
-Upload → validate + hash → page-aware extraction → overlapping chunks
-       → one cached multilingual embedder → versioned persistent ChromaDB index
-Question + authorized scope → conservative intent hints → query embeddings
-       → filtered semantic retrieval → evidence gate → Gemini with source context
-       → answer + original passages → scoped conversation/source snapshots
+Browser → Django views → session-scoped conversations + SQLite
+                     → general chat → local Qwen model
+                     → document question → embeddings → ChromaDB → local model
+                                                              → answer + citations
 ```
 
-`assistant_app/rag.py` orchestrates the pipeline. `services/` separates extraction, model loading, vector persistence, query handling, generation, processing and ownership. SQLite is authoritative for citation metadata; stale or orphaned vectors are discarded. Summaries sample up to 12 excerpts across the selected scope and disclose that coverage.
+The interface uses Django templates and plain CSS/JavaScript, with no frontend build step. `assistant_app/rag.py` coordinates retrieval; `services/` separates generation, embeddings, OCR, extraction, storage, ownership, and background processing. Gemini remains an optional backend via `LLM_PROVIDER=gemini`; local mode never falls back to a paid provider.
 
-The multilingual E5-small encoder is configured to use its supported 512-token limit to avoid silently truncating ordinary chunks; that setting is included in the index signature. Switching from MiniLM-L12 to E5-small changes retrieval ranking and requires documents to be reindexed.
-
-## Verification commands
+## Checks
 
 ```powershell
-# Fast regression tests; no live API calls or model downloads
-.\.venv\Scripts\python.exe manage.py test assistant_app.tests assistant_app.tests_features
-
-# Real embeddings, ChromaDB, physical PDF pages and four-language retrieval
+.\.venv\Scripts\python.exe manage.py check
+.\.venv\Scripts\python.exe manage.py test assistant_app
 .\.venv\Scripts\python.exe -X utf8 test_rag_pipeline.py
-
-# Also calls Gemini with synthetic fixtures, including response-language checks
-.\.venv\Scripts\python.exe -X utf8 test_rag_pipeline.py --gemini
-
-# Exercise a running server, including actual background processing and CSRF
-.\.venv\Scripts\python.exe scripts\smoke_http.py --url http://127.0.0.1:8001 --gemini
-
-# A small API availability diagnostic; never prints credentials
-.\.venv\Scripts\python.exe scripts\diagnose_gemini.py
-
-node --check static\assistant_app\workspace.js
-.\.venv\Scripts\python.exe manage.py makemigrations --check --dry-run
+node --check static/assistant_app/workspace.js
+node --test scripts/test_speech.cjs scripts/test_workspace_ui.cjs
 ```
 
-The integration runner creates a separate test database and temporary media/vector storage. It does not delete or replace the user's sample document. The HTTP smoke test uses its own guest session and removes only its synthetic fixtures. Node is optional for JavaScript syntax checking; it is not part of the app's runtime.
+DOM tests use optional jsdom tooling: `npm.cmd install --prefix .local-backup/ui-test-tools --no-save --package-lock=false --ignore-scripts jsdom@27.0.1`. Integration tests use isolated databases and temporary media/vector storage. Live Gemini tests are opt-in and are not required for local mode.
 
-See [verification results](docs/VERIFICATION.md), [audit and changed files](docs/AUDIT.md), [deployment](docs/DEPLOYMENT.md), and the [demo and Q&A](docs/DEMO.md).
+Security controls include workspace ownership checks, CSRF protection, escaped output, a nonce-based script policy, secure production cookies, private file delivery, and request limits for the single-worker demo.
+
+Dependency audit: Pillow, Transformers, and Sentence Transformers were upgraded to patched versions. The scanner still reports ChromaDB HTTP-server/RBAC advisories without an available fix. Folio uses an embedded client, does not expose that HTTP server, and does not accept model repositories from users. This is not a claim of a clean vulnerability scan or a production security certification.
 
 ## Practical limits
 
-Local OCR supports clear printed scans; see [OCR setup and limits](docs/OCR.md). Handwriting and poor scans are not guaranteed. Summaries of long documents use bounded samples. The small local thread queue is not a durable production job system; interrupted jobs need a retry. Language hints are heuristics, not a full language classifier, and the small labelled retrieval fixture is not a broad multilingual benchmark. Bootstrap and optional web fonts load from CDNs; system fonts and the core custom styles remain available without fonts.
+The small local model can make mistakes. Verify important facts and exam answers; it cannot predict an exam paper. **There is no live news/web search.** Paste an article or upload its text/PDF for a summary; a URL alone is not fetched.
 
-Render Free deployment configuration is included; see the [deployment guide](docs/DEPLOYMENT.md). No live deployment has been verified yet. Free hosting has temporary storage and may not have enough RAM for the local AI model. Do not serve private files directly from `/media/`; the application uses its protected source endpoint instead.
+Guest identity depends on browser cookies and is not a cross-device account. Long document summaries sample excerpts. OCR depends on scan quality. The in-process queue and cache suit a small demo; a broader service needs shared rate-limit storage, durable workers, and storage quotas.
+
+See [deployment and public preview](docs/DEPLOYMENT.md). The internal Django package and existing storage keys keep their original names to preserve stored data and preferences.
+
+## Resume description
+
+**Folio — Local Study and Document Assistant**
+
+Built a full-stack Django application with credit-free local LLM inference, multilingual document retrieval, page-level citations, scanned-PDF OCR, session-scoped libraries, saved conversations, and a responsive light/dark interface.

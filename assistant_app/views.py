@@ -15,7 +15,7 @@ from django.views.decorators.http import require_GET, require_POST
 from .models import ChatMessage, Conversation, Document
 from .rag import _normalize_document_scope, generate_answer, retrieve
 from .services.embeddings import index_signature
-from .services.generation import generate_chat_answer, gemini_configured
+from .services.generation import generate_chat_answer, gemini_configured, generation_model
 from .services.processing import submit_document
 from .services.queries import understand_query
 from .services.workspaces import workspace_key
@@ -94,10 +94,11 @@ def dashboard(request):
         "documents": [document_data(d) for d in owned_documents(request)],
         "conversations": [conversation_data(c) for c in owned_conversations(request).prefetch_related("documents")[:50]],
         "gemini_configured": gemini_configured(),
+        "llm_provider": settings.LLM_PROVIDER,
         "display_name": request.session.get("display_name", "Guest researcher"),
         "workspace_key": key,
     }
-    return render(request, "assistant_app/dashboard.html", {"initial": initial})
+    return render(request, "assistant_app/dashboard.html", {"initial": initial, "csp_nonce": getattr(request, "csp_nonce", "")})
 
 
 @require_POST
@@ -214,6 +215,8 @@ def ask_question(request):
     question = body["question"].strip()
     if not question or len(question) > 2000:
         return error("Enter a question between 1 and 2,000 characters.")
+    if not isinstance(body.get("chat_mode", "auto"), str):
+        return error("Invalid chat mode.")
     key = workspace_key(request)
     request_id = body.get("request_id")
     if request_id is not None:
@@ -225,7 +228,7 @@ def ask_question(request):
         if prior:
             if (prior.question != question
                 or "documents" in body and _normalize_document_scope(body["documents"]) != prior.query_metadata.get("documents")
-                or body.get("chat_mode", "documents") != prior.query_metadata.get("chat_mode", "documents")
+                or body.get("chat_mode", "auto") not in {"auto", prior.query_metadata.get("chat_mode", "documents")}
                 or body.get("conversation_id") is not None and body["conversation_id"] != prior.conversation_id):
                 return error("This request ID was already used for another question or document selection.", 409)
             return JsonResponse({"success": True, **turn_data(prior)})
@@ -237,10 +240,15 @@ def ask_question(request):
         if isinstance(conversation_id, bool) or not str(conversation_id).isdecimal():
             return error("Invalid conversation ID.")
         conversation = get_object_or_404(owned_conversations(request), pk=conversation_id)
-    chat_mode = body.get("chat_mode", "documents")
-    if chat_mode not in {"documents", "general"}:
-        return error("Choose document chat or general chat.")
+    chat_mode = body.get("chat_mode", "auto")
+    if chat_mode not in {"documents", "general", "auto"}:
+        return error("Invalid chat mode.")
     selection = body.get("documents", list(conversation.documents.values_list("id", flat=True)) if conversation else None)
+    selected = _normalize_document_scope(selection)
+    if chat_mode == "auto":
+        if selection is not None and (not isinstance(selection, list) or selection and not selected):
+            return error("Send a valid list of document IDs.")
+        chat_mode = "documents" if selected else "general"
     if chat_mode == "general":
         selection = []
     selected = _normalize_document_scope(selection)
@@ -255,7 +263,7 @@ def ask_question(request):
                 return error("One or more selected documents are unavailable.", 404)
         docs = list(docs_query)
         if not docs:
-            return error("Upload and select a document first.")
+            return error("The selected documents are unavailable. Remove them to chat without a document.")
         if any(not d.processed or d.index_signature != index_signature() for d in docs):
             return error("Selected documents are still processing or need reindexing. Check the library.", 409, "processing")
         selected = sorted(d.id for d in docs)
@@ -265,7 +273,7 @@ def ask_question(request):
                   and previous.query_metadata.get("documents") == selected)
     info = understand_query(question, previous.question if same_scope else "", previous.answer if same_scope else "")
     lock = "documind-ask:" + key
-    if not cache.add(lock, True, timeout=max(180, settings.GEMINI_TIMEOUT_MS // 1000 + 60)):
+    if not cache.add(lock, True, timeout=max(180, settings.GEMINI_TIMEOUT_MS // 1000 + 60, settings.LOCAL_LLM_TIMEOUT_SECONDS + 60)):
         return error("A question is already being processed in this workspace.", 409, "busy")
     try:
         try:
@@ -288,7 +296,8 @@ def ask_question(request):
                 return error("General chat is temporarily unavailable. Please retry.", 503, "provider_error")
             return error("Document retrieval is unavailable. Check the embedding model and vector storage, then retry.", 503, "retrieval_failure")
         metadata = {"original": question, "normalized": info["normalized"], "language_hint": info["language_hint"],
-                    "documents": selected, "chat_mode": chat_mode, "requested_page": info["page"], "summary": info["summary"],
+                    "documents": selected, "chat_mode": chat_mode, "provider": settings.LLM_PROVIDER,
+                    "requested_page": info["page"], "summary": info["summary"],
                     "retrieved_count": len(results), "index_signature": index_signature(),
                     "scope_note": f"Based on {len(sources)} retrieved excerpts from {len(docs)} selected document(s)." if chat_mode == "documents" else ""}
         with transaction.atomic():
@@ -366,7 +375,7 @@ def system_stats(request):
                          "total_chunks": sum(d.chunk_count for d in docs if d.processed),
                          "total_queries": ChatMessage.objects.filter(conversation__workspace_key=workspace_key(request)).count(),
                          "embedding_model": settings.EMBEDDING_MODEL, "vector_store": "ChromaDB · persistent cosine index",
-                         "ai_model": settings.GEMINI_MODEL, "gemini_configured": gemini_configured()})
+                         "ai_model": generation_model(), "llm_provider": settings.LLM_PROVIDER, "gemini_configured": gemini_configured()})
 
 
 @require_POST
@@ -386,4 +395,4 @@ def document_questions(request, document_id):
 
 @require_GET
 def health(request):
-    return JsonResponse({"status": "ok", "service": "OWN GPT", "gemini_configured": gemini_configured()})
+    return JsonResponse({"status": "ok", "service": "Folio", "llm_provider": settings.LLM_PROVIDER, "gemini_configured": gemini_configured()})

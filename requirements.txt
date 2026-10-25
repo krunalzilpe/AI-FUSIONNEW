@@ -1,15 +1,16 @@
 Django>=5.0,<6.0
 gunicorn>=23.0,<24.0; sys_platform != 'win32'
+waitress>=3.0,<4.0; sys_platform == 'win32'
 whitenoise>=6.8,<7.0
 pypdf>=5.0.0
-sentence-transformers>=3.0.0,<4.0.0
-transformers>=4.41.0
+sentence-transformers>=5.6.0,<6.0.0
+transformers>=5.20.2,<6.0.0
 numpy>=1.26.0
 chromadb>=1.5.0
 google-genai>=1.0.0
 python-dotenv>=1.0.0
 pypdfium2>=4.30,<6.0
-Pillow>=10.4
+Pillow>=13.0.0,<14.0.0
 tesserocr>=2.11,<3.0; sys_platform != 'win32'
 # Bundled Tesseract for the project's Windows/Python 3.12 environment.
 tesserocr @ https://github.com/simonflueckiger/tesserocr-windows_build/releases/download/tesserocr-v2.11.0-tesseract-5.5.3/tesserocr-2.11.0-cp312-cp312-win_amd64.whl ; sys_platform == 'win32' and python_version == '3.12' and platform_machine == 'AMD64'

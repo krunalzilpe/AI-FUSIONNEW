@@ -1,69 +1,34 @@
-# Deployment guide
+# Deployment
 
-Deployment status: **not deployed**. No hosting URL has been created or verified.
+Folio is a full-stack Django application. Static-only hosting cannot run its Python backend or local model.
 
-## Render free demonstration
+## Current public demo
 
-The repository includes `render.yaml` and a Python 3.12 Docker image for a free
-web service. The image installs CPU-only PyTorch and the Linux OCR libraries,
-downloads the public embedding/OCR models, and collects static files. Gunicorn
-runs one worker with two threads; WhiteNoise serves static assets. Migrations
-run at startup because the free filesystem can reset between starts.
+A temporary HTTPS preview was verified on 25 October 2026 at:
 
-1. Open https://dashboard.render.com/select-repo?type=blueprint and choose
-   `krunalzilpe/AI-FUSIONNEW`, branch `main`.
-2. Review the Blueprint: one **Free** Docker web service, no paid resources.
-   Enter `GEMINI_API_KEY` in Render's secret field. Do not commit it or paste it
-   into chat. The Blueprint selects `gemini-3.1-flash-lite`; Render generates
-   `DJANGO_SECRET_KEY` automatically. The local `.env` key is not deployed.
-3. Deploy and wait for the build and service health check to pass. The first
-   build downloads large ML dependencies and the multilingual model.
-4. Visit the URL returned by Render. Verify `/health/`, the dashboard styling,
-   a small TXT/PDF upload, processing, a cited answer, and source access.
+https://boxing-exhaust-serving-avenue.trycloudflare.com
 
-Render's assigned hostname configures allowed hosts, trusted HTTPS origins,
-proxy HTTPS detection, HTTPS redirects and secure cookies automatically.
-For a custom domain, add that hostname to `ALLOWED_HOSTS` and its complete
-`https://...` origin to `CSRF_TRUSTED_ORIGINS`.
+The application runs behind Cloudflare Tunnel with Waitress, DEBUG disabled, an exact allowed hostname, a trusted HTTPS origin, secure cookies, CSRF checks, CSP script nonces, and request limits. The model endpoint stays bound to loopback.
 
-This is a best-effort free demo. The Free tier has 512 MB RAM. The deployment
-uses the multilingual E5-small encoder, but this memory limit can still be
-insufficient while the local model loads or indexes documents. A successful
-health check only verifies the web process, not the AI pipeline. If the process
-is killed during indexing, more memory or a quantized embedding architecture is
-required; changing Gunicorn's timeout does not fix out-of-memory errors. No
-paid upgrade is automatic.
+**This is a temporary public demo, not permanent hosting.** It stops when the laptop, model, app, or tunnel stops; the hostname changes when a new quick tunnel is created. See [Cloudflare's quick-tunnel limits](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/).
 
-**Uploads, SQLite history and Chroma indexes are temporary:** Render Free
-loses local writes when the service restarts, redeploys or sleeps after idle
-time. Do not rely on it for stored documents. Local `.env`, databases, uploads
-and caches are excluded from the Docker build context. A first deployment
-starts with an empty library.
+## Hosting without API credits
 
-References: [Render Docker](https://render.com/docs/docker),
-[free service limits](https://render.com/docs/free), and
-[Blueprint specification](https://render.com/docs/blueprint-spec).
+A server with enough RAM can run Django and the quantized model together. Start llama.cpp on loopback or a private network, set `LLM_PROVIDER=local`, and point `LOCAL_LLM_URL` at it. Local inference removes per-request API credits; server resources still need to be provided.
 
-## Local demonstration
+The existing Render Free Blueprint uses the optional Gemini backend. Its 512 MB memory allowance is unsuitable for this local LLM, and may also be insufficient for the embedding model. No paid upgrade is created automatically. Creating a new Docker Space on Hugging Face currently requires a paid plan; do not describe it as a free deployment option.
 
-Use the Windows commands in the README. Keep `DJANGO_DEBUG=True`, bind the development server to `127.0.0.1`, and open the chosen local port. Run the real integration and HTTP smoke tests before the demo. Download the embedding model before judging starts so a cold download does not interrupt the upload.
+## Production configuration
 
-## A small hosted installation
+- Set a long random `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=False`, exact `ALLOWED_HOSTS`, and HTTPS `CSRF_TRUSTED_ORIGINS`.
+- Use a trusted HTTPS reverse proxy. Set `FOLIO_HTTPS_PROXY=true` only when the app is bound behind that proxy; never expose an untrusted forwarded-protocol header directly.
+- Run `python manage.py migrate` and `python manage.py collectstatic --noinput`.
+- On Linux, use the Gunicorn startup script. On Windows, `python scripts/serve.py --port 8004` uses Waitress on loopback.
+- Keep the model service private. Expose the Django application, not the inference port.
+- Back up SQLite, uploaded files, and ChromaDB together on persistent storage.
+- Original files must use ownership-checked `/document/<id>/source/` endpoints. Never add a public media alias.
+- Keep the app's single-worker setting unless background jobs and request-limit storage have been moved to shared services.
 
-The simplest arrangement is one Django application instance with a persistent disk for SQLite, media files, ChromaDB and the model cache. Ephemeral filesystems lose the document/index state on restart. This implementation's local queue is intended for a small demonstration, not a multi-worker production ingestion service.
+`manage.py check --deploy` has two deliberate HSTS advisory warnings: subdomains and browser preload are not enabled for an unowned temporary hostname. HTTPS redirection and HSTS for the current hostname are enabled. Configure those broader HSTS options only for a domain you control.
 
-1. Install Python 3.12 and `requirements.txt` in an isolated environment.
-2. Configure a long random `DJANGO_SECRET_KEY`, `GEMINI_API_KEY`, a valid `GEMINI_MODEL`, `DJANGO_DEBUG=False`, and explicit `ALLOWED_HOSTS`.
-3. Use HTTPS. Secure session/CSRF cookies are enabled outside debug mode. Configure trusted origins and reverse-proxy HTTPS headers for your actual host; do not blindly trust arbitrary forwarded headers.
-4. Run migrations and `python manage.py collectstatic --noinput`. Use a suitable production WSGI/ASGI server and a reverse proxy rather than Django's development server. For example, install Gunicorn separately on a Linux host and run `gunicorn documind.wsgi:application --workers 1 --bind 127.0.0.1:8000 --timeout 120`.
-5. Serve `/static/` from `static_collected/`. Do **not** add a public `/media/` alias. Original documents must pass through `/document/<id>/source/`, which checks workspace ownership.
-6. Keep SQLite, files and ChromaDB together in a backup plan. Limit upload/body sizes at the reverse proxy. Use appropriate file/disk quotas for the hosting environment.
-7. Run `python manage.py check --deploy`, then address its findings for the chosen HTTPS/proxy configuration. Verify source authorization, sessions, upload and generation through the public host before declaring deployment complete.
-
-Before serving a broader multi-user audience, implement durable ingestion jobs, rate limits, storage quotas and deliberate account/session lifecycle controls. The in-process request lock and queue do not coordinate multiple Django worker processes. No claim of production-grade multi-user security is made.
-
-## Recovery and model changes
-
-Back up SQLite and files before changing an embedding configuration. Rebuild with `python manage.py reindex_documents --all`; the versioned collection prevents a new query model from searching incompatible old vectors. Stop concurrent ingestion while running a bulk rebuild. Jobs interrupted by a restart can be retried from the library or through that command.
-
-Pre-upgrade global data can be assigned using `adopt_legacy --workspace-key` with a specific Settings recovery ID. Keep administrative project/database access private.
+Anonymous public demos still need operational monitoring, storage quotas, and abuse controls before broader use. A temporary tunnel is not a production uptime promise.

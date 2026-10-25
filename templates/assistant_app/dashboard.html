@@ -4,372 +4,130 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="OWN GPT · Intelligent Multilingual Document Workspace powered by ChromaDB & Gemini 3.8.">
-  <title>OWN GPT · Your documents, understood.</title>
-  <script>
+  <meta name="theme-color" content="#183e35">
+  <meta name="description" content="Folio turns your documents into a conversation. Read less, understand more, and follow every answer back to its source.">
+  <title>Folio — Make sense of every page.</title>
+  <script nonce="{{ csp_nonce }}">
     (() => { let theme = 'light'; try { const saved = localStorage.getItem('documind-theme'); if (['light','dark','system'].includes(saved)) theme = saved; } catch(_){} if(theme==='system') theme = matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'; document.documentElement.dataset.theme = theme; })();
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-  <link rel="stylesheet" href="{% static 'assistant_app/style.css' %}?v=student_light_2">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;450;500;550;600;650;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="{% static 'assistant_app/favicon.svg' %}">
+  <link rel="stylesheet" href="{% static 'assistant_app/style.css' %}?v=folio-2">
   <script src="{% static 'assistant_app/speech.js' %}" defer></script>
-  <script src="{% static 'assistant_app/workspace.js' %}" defer></script>
+  <script src="{% static 'assistant_app/workspace.js' %}?v=folio-2" defer></script>
 </head>
 <body>
 <svg class="svg-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
-  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></symbol>
+  <symbol id="i-folio" viewBox="0 0 24 24"><path d="M5 3h9a4 4 0 0 1 4 4v14H9a4 4 0 0 1-4-4z"/><path d="M9 7h12v10a4 4 0 0 1-4 4M9 3v18M12 11h5M12 15h3"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
-  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></symbol>
-  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></symbol>
-  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
-  <symbol id="i-arrow" viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></symbol>
-  <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
-  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol>
-  <symbol id="i-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
-  <symbol id="i-menu" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></symbol>
-  <symbol id="i-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
-  <symbol id="i-listen" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 11a8 8 0 0 1-8 8H8l-5 3 1.5-6A8 8 0 1 1 21 11Z"/><path d="M8 10h8M8 14h5"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4M12 3v12M7 8l5-5 5 5"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M12 19V5m-6 6 6-6 6 6"/></symbol>
+  <symbol id="i-northeast" viewBox="0 0 24 24"><path d="M6 18 18 6M6 6h12v12"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 5c-3-2-6-2-10-1v15c4-1 7-1 10 1 3-2 6-2 10-1V4c-4-1-7-1-10 1Zm0 0v15"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+  <symbol id="i-listen" viewBox="0 0 24 24"><path d="m11 5-5 4H2v6h4l5 4ZM16 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></symbol>
   <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
-  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
-  <symbol id="i-refresh" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></symbol>
-  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
-  <symbol id="i-theme" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-1l2 6M4 12l2 6a7 7 0 0 0 12-1"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M4 16v4h16v-4M12 3v12m-5-5 5 5 5-5"/></symbol>
+  <symbol id="i-theme" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1 1m12 12 1 1M5 19l1-1M18 6l1-1"/></symbol>
+  <symbol id="i-language" viewBox="0 0 24 24"><path d="M3 5h12M9 3v2M5 5c0 6 4 10 9 12M13 5c0 6-4 10-10 12m11 4 4-11 4 11m-7-3h6"/></symbol>
+  <symbol id="i-lines" viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h8"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
 </defs></svg>
-
+<a class="skip-link" href="#question-input">Skip to conversation</a>
 <div class="app-shell">
   <button class="sidebar-scrim" id="sidebar-scrim" aria-label="Close navigation" hidden></button>
-
-  <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar" aria-label="Workspace navigation">
     <div class="sidebar-header">
-      <a class="brand" href="/" aria-label="OWN GPT home">
-        <span class="brand-mark">
-          <svg><use href="#i-doc"/></svg>
-        </span>
-        <span class="brand-text">
-          <span class="brand-name">OWN</span> <span class="brand-ai">GPT</span>
-        </span>
-      </a>
-      <div class="workspace-label">
-        <span class="workspace-avatar">P</span>
-        <div class="workspace-meta">
-          <span class="workspace-title">Personal Workspace</span>
-          <small>Session guest · Private RAG</small>
-        </div>
-        <span class="tiny-dot" title="Workspace active"></span>
-      </div>
+      <a class="brand" href="/" aria-label="Folio home"><span class="brand-mark"><svg aria-hidden="true"><use href="#i-folio"/></svg></span><span>folio<span class="brand-period">.</span></span></a>
+      <div class="workspace-label"><span class="workspace-avatar">W</span><div><strong>Personal workspace</strong><small>A little space for big ideas.</small></div></div>
     </div>
-
-    <button class="primary-btn new-chat" id="new-chat-btn">
-      <svg aria-hidden="true"><use href="#i-plus"/></svg>
-      <span>New Chat</span>
-      <span class="btn-shortcut" aria-hidden="true">⌘N</span>
-    </button>
-
+    <button class="primary-btn new-chat" id="new-chat-btn"><svg aria-hidden="true"><use href="#i-plus"/></svg><span>New conversation</span><kbd aria-hidden="true">Alt N</kbd></button>
     <div class="sidebar-scroll">
-      <div class="section-title">
-        <span>Document Library</span>
-        <span id="doc-count">0</span>
-        <button class="icon-btn" data-upload title="Upload document" aria-label="Upload document">
-          <svg><use href="#i-plus"/></svg>
-        </button>
-      </div>
-
-      <label class="search-field">
-        <svg><use href="#i-search"/></svg>
-        <input id="doc-search" placeholder="Search documents…" aria-label="Find a document">
-      </label>
-
+      <div class="section-title"><span>Your library</span><span class="count-badge" id="doc-count">0</span><button class="icon-btn" data-upload title="Add a document" aria-label="Add a document"><svg><use href="#i-plus"/></svg></button></div>
+      <label class="search-field"><svg aria-hidden="true"><use href="#i-search"/></svg><input id="doc-search" placeholder="Find a document…" aria-label="Find a document"></label>
       <div id="doc-library" class="doc-library"></div>
-
-      <button class="sidebar-upload" data-upload>
-        <svg aria-hidden="true"><use href="#i-upload"/></svg>
-        <span>Upload Document</span>
-      </button>
-
-      <div class="section-title recent-title">
-        <span>Recent Conversations</span>
-        <button class="text-btn" id="clear-history-btn">Clear all</button>
-      </div>
+      <button class="sidebar-upload" data-upload><svg aria-hidden="true"><use href="#i-upload"/></svg>Add documents</button>
+      <div class="section-title recent-title"><span>Conversations</span><button class="text-btn" id="clear-history-btn">Clear</button></div>
       <nav id="conversation-list" aria-label="Recent conversations"></nav>
     </div>
-
     <div class="sidebar-bottom">
-      <label class="theme-control" for="sidebar-theme">
-        <span><svg aria-hidden="true"><use href="#i-theme"/></svg> Appearance</span>
-        <select id="sidebar-theme">
-          <option value="light">Light Mode</option>
-          <option value="dark">Dark Mode</option>
-          <option value="system">System Preference</option>
-        </select>
-      </label>
-      <div class="workspace-note">
-        <svg><use href="#i-book"/></svg>
-        <p>Evidence-grounded RAG.<small>Every answer citations-backed.</small></p>
-      </div>
-      <button class="profile-btn" id="settings-btn">
-        <span class="profile-avatar" id="profile-initial">G</span>
-        <div class="profile-info">
-          <strong id="profile-name">Guest researcher</strong>
-          <small>Workspace & API settings</small>
-        </div>
-        <svg><use href="#i-settings"/></svg>
-      </button>
+      <div class="sidebar-note"><svg aria-hidden="true"><use href="#i-book"/></svg><p>A good answer has a source.<small>Yours are always one click away.</small></p></div>
+      <label class="theme-control" for="sidebar-theme"><span><svg aria-hidden="true"><use href="#i-theme"/></svg>Appearance</span><select id="sidebar-theme"><option value="light">Light</option><option value="dark">Dark</option><option value="system">System</option></select></label>
+      <button class="profile-btn" id="settings-btn"><span class="profile-avatar" id="profile-initial">G</span><span class="profile-info"><strong id="profile-name">Guest researcher</strong><small>Workspace settings</small></span><svg aria-hidden="true"><use href="#i-settings"/></svg></button>
     </div>
   </aside>
-
-  <!-- MAIN WORKSPACE -->
   <main class="main-workspace">
     <header class="topbar">
-      <button class="icon-btn mobile-menu" id="menu-toggle" aria-label="Open navigation" aria-expanded="false">
-        <svg><use href="#i-menu"/></svg>
-      </button>
-      <div class="breadcrumb">
-        <span class="breadcrumb-root">Workspace</span>
-        <span class="breadcrumb-slash">/</span>
-        <strong id="conversation-title">New conversation</strong>
-      </div>
-      <div class="header-actions">
-        <span class="connection-status" id="connection-status"><i></i> Document assistant</span>
-        <button class="icon-btn" id="conversation-menu-btn" aria-label="Conversation actions" title="Conversation actions" disabled>•••</button>
-      </div>
+      <button class="icon-btn mobile-menu" id="menu-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><svg><use href="#i-menu"/></svg></button>
+      <div class="breadcrumb"><svg aria-hidden="true"><use href="#i-folio"/></svg><span class="breadcrumb-root">Workspace</span><span class="breadcrumb-slash">/</span><strong id="conversation-title">New conversation</strong></div>
+      <div class="header-actions"><button class="icon-btn" id="conversation-menu-btn" aria-label="Conversation actions" title="Conversation actions" disabled><svg><use href="#i-more"/></svg></button></div>
     </header>
-
     <div class="workspace-body" id="workspace-body">
       <div class="workspace-center">
         <div class="message-scroll" id="message-scroll">
-
-          <!-- WELCOME SCREEN -->
-          <section class="welcome" id="welcome-screen">
-            <div class="welcome-badge">
-              <span class="badge-dot"></span>
-              <span class="badge-text">Intelligent Document Assistant</span>
-              <span class="badge-tag">ChromaDB · Gemini 3.8</span>
-            </div>
-
-            <div class="welcome-header">
-              <div class="welcome-emblem">
-                <svg><use href="#i-doc"/></svg>
-                <span class="emblem-spark">✦</span>
-              </div>
-              <div class="welcome-headlines">
-                <div class="eyebrow">GROUNDED INTELLIGENCE · MULTILINGUAL RAG</div>
-                <h1>Your documents.<br><span class="gradient-text">Understood in seconds.</span></h1>
+          <section class="welcome" id="welcome-screen" aria-labelledby="welcome-title">
+            <div class="welcome-topline"><span class="eyebrow"><span class="small-dot"></span>MAKE ROOM FOR THE BIG IDEAS</span><span class="edition-label">YOUR READING COMPANION</span></div>
+            <div class="welcome-hero">
+              <div class="welcome-copy"><h1 id="welcome-title">Less searching.<br>More <em>understanding.</em></h1><p>Ask a question, work through a tricky topic, or bring your notes. Your next good idea starts with a conversation.</p><div class="hero-signoff"><span class="mini-check"><svg aria-hidden="true"><use href="#i-check"/></svg></span>Start chatting. Documents are optional.</div></div>
+              <div class="paper-scene" aria-hidden="true">
+                <div class="scene-orbit"></div><span class="scene-plus plus-one">+</span><span class="scene-plus plus-two">+</span>
+                <div class="paper-back"></div><div class="paper-front"><div class="paper-top"><svg><use href="#i-doc"/></svg><span>THE BIG PICTURE</span><span>01</span></div><div class="paper-title">Ideas worth<br>looking into.</div><div class="paper-lines"><i></i><i></i><i></i></div><div class="paper-highlight"><span></span><span></span></div><div class="paper-lines short"><i></i><i></i></div><div class="paper-bottom">A little context goes a long way.<svg><use href="#i-northeast"/></svg></div></div>
+                <div class="source-stamp"><span><svg><use href="#i-check"/></svg></span><div>Clarity, with context.<small>Go straight to the source.</small></div></div><div class="scene-caption">A NEW WAY TO READ BETWEEN THE LINES</div>
               </div>
             </div>
-
-            <p class="welcome-description">
-              Upload research papers, legal PDFs, meeting notes, or text files. Ask complex questions in English, Hindi, or Marathi, and explore verifiable, page-by-page citations.
-            </p>
-
-            <div class="capabilities-strip">
-              <span class="cap-pill">
-                <span class="cap-icon">⚡</span>
-                <span>Semantic Vector RAG</span>
-              </span>
-              <span class="cap-pill">
-                <span class="cap-icon">🧠</span>
-                <span>Gemini 3.8 Deep Reasoning</span>
-              </span>
-              <span class="cap-pill">
-                <span class="cap-icon">📄</span>
-                <span>Scanned PDF OCR</span>
-              </span>
-              <span class="cap-pill">
-                <span class="cap-icon">🔒</span>
-                <span>Local Session Privacy</span>
-              </span>
+            <button class="drop-zone" id="drop-zone" type="button"><span class="upload-tile"><svg aria-hidden="true"><use href="#i-upload"/></svg></span><span class="drop-zone-text"><strong>Have notes or a chapter? Bring them along.</strong><small>Optional: drop a file here, or <span>browse files</span></small></span><span class="upload-types">PDF / TXT<small>Up to 15 MB each</small></span><svg class="drop-arrow" aria-hidden="true"><use href="#i-northeast"/></svg></button>
+            <div class="suggestions-heading"><h2>A place to start</h2><span>For the questions big and small.</span></div>
+            <div class="suggestion-grid">
+              <button class="suggestion-card" data-question="Explain photosynthesis in simple words, with an everyday example."><span class="suggestion-top"><span class="suggestion-icon"><svg aria-hidden="true"><use href="#i-book"/></svg></span><span class="suggestion-number">01</span></span><strong>Understand a topic</strong><span class="suggestion-description">Big concepts, in smaller steps.</span><svg class="suggestion-arrow" aria-hidden="true"><use href="#i-northeast"/></svg></button>
+              <button class="suggestion-card" data-question="Help me revise for an exam. First ask my class and subject, then quiz me one question at a time and explain each answer."><span class="suggestion-top"><span class="suggestion-icon"><svg aria-hidden="true"><use href="#i-check"/></svg></span><span class="suggestion-number">02</span></span><strong>Practice for exams</strong><span class="suggestion-description">A little revision. A little more confidence.</span><svg class="suggestion-arrow" aria-hidden="true"><use href="#i-northeast"/></svg></button>
+              <button class="suggestion-card" data-question="Is document ke main points simple Hinglish mein samjhao."><span class="suggestion-top"><span class="suggestion-icon"><svg aria-hidden="true"><use href="#i-language"/></svg></span><span class="suggestion-number">03</span></span><strong>Apni language mein</strong><span class="suggestion-description">English, Hindi, Hinglish, or Marathi.</span><svg class="suggestion-arrow" aria-hidden="true"><use href="#i-northeast"/></svg></button>
             </div>
-
-            <!-- DROP ZONE -->
-            <button class="drop-zone" id="drop-zone" type="button">
-              <div class="drop-zone-border-glow"></div>
-              <span class="upload-tile">
-                <svg><use href="#i-upload"/></svg>
-              </span>
-              <div class="drop-zone-text">
-                <strong>Upload your PDF or TXT files</strong>
-                <small>Text documents or scanned PDFs &middot; <span class="browse-link">Browse files</span> &middot; Up to 15 MB</small>
-              </div>
-              <span class="drop-arrow">↗</span>
-            </button>
-
-            <!-- SUGGESTIONS -->
-            <div class="suggestions-heading">
-              <span>Suggested starting points</span>
-              <span class="heading-arrow">↙</span>
-            </div>
-            <div class="row g-3 suggestion-grid">
-              <div class="col-12 col-sm-6">
-                <button class="suggestion-card" data-question="Summarize the main ideas of this document.">
-                  <span class="suggestion-icon blue">≡</span>
-                  <div class="suggestion-content">
-                    <strong>See the bigger picture</strong>
-                    <small>Summarize the main ideas & conclusions</small>
-                  </div>
-                  <span class="suggestion-arrow">↗</span>
-                </button>
-              </div>
-              <div class="col-12 col-sm-6">
-                <button class="suggestion-card" data-question="What requirements and key facts are listed in this document?">
-                  <span class="suggestion-icon amber">⌘</span>
-                  <div class="suggestion-content">
-                    <strong>Get to the essentials</strong>
-                    <small>Extract critical requirements & key facts</small>
-                  </div>
-                  <span class="suggestion-arrow">↗</span>
-                </button>
-              </div>
-              <div class="col-12 col-sm-6">
-                <button class="suggestion-card" data-question="Bhai, is document me kya likha hai? Simple Hinglish me samjha.">
-                  <span class="suggestion-icon green">अ</span>
-                  <div class="suggestion-content">
-                    <strong>Apni language mein</strong>
-                    <small>Explore the document in simple Hinglish</small>
-                  </div>
-                  <span class="suggestion-arrow">↗</span>
-                </button>
-              </div>
-              <div class="col-12 col-sm-6">
-                <button class="suggestion-card" data-question="या दस्तऐवजाचा सारांश सोप्या मराठीत सांगा.">
-                  <span class="suggestion-icon mauve">↔</span>
-                  <div class="suggestion-content">
-                    <strong>A fresh perspective</strong>
-                    <small>Ask in Marathi, Hindi, or English</small>
-                  </div>
-                  <span class="suggestion-arrow">↗</span>
-                </button>
-              </div>
-            </div>
-
-            <div class="welcome-footnote">
-              <svg><use href="#i-check"/></svg>
-              <span>Choose document evidence for cited answers, or General Chat for open-ended questions.</span>
-            </div>
+            <div class="welcome-footnote"><svg aria-hidden="true"><use href="#i-lock"/></svg><span>Your library stays in this browser's workspace.</span><span class="footnote-line"></span><span>Read a little differently.</span></div>
           </section>
-
-          <!-- CHAT MESSAGES -->
           <section class="chat-messages" id="chat-messages" aria-label="Conversation" aria-live="polite" hidden></section>
         </div>
-
-        <!-- COMPOSER AREA -->
         <div class="composer-area">
-          <div class="scope-row">
-            <span class="scope-label" id="scope-label"><svg><use href="#i-doc"/></svg> Active Sources</span>
-            <div id="scope-chips"></div>
-            <span id="scope-count"></span>
-            <label class="mode-toggle"><input id="general-chat-toggle" type="checkbox"> General Chat</label>
-          </div>
-
+          <div class="scope-row"><span class="scope-label" id="scope-label"><svg aria-hidden="true"><use href="#i-chat"/></svg>Chat</span><div id="scope-chips"></div><span id="scope-count"></span></div>
           <form id="question-form" class="composer">
             {% csrf_token %}
             <label class="visually-hidden" id="question-input-label" for="question-input">Ask about your documents</label>
-            <textarea id="question-input" rows="1" maxlength="2000" placeholder="Ask anything about your documents… (Press Enter to send)" required></textarea>
-            <div class="composer-toolbar">
-              <button class="attach-btn" type="button" data-upload title="Upload a PDF or TXT document">
-                <svg aria-hidden="true"><use href="#i-upload"/></svg>
-                <span>Upload Document</span>
-              </button>
-              <span class="composer-language">Natural language &middot; Multilingual</span>
-              <button class="send-btn" id="send-btn" type="submit">
-                <svg aria-hidden="true"><use href="#i-arrow"/></svg>
-                <span>Ask Question</span>
-              </button>
-            </div>
+            <textarea id="question-input" rows="1" maxlength="2000" placeholder="What would you like to understand?" required></textarea>
+            <div class="composer-toolbar"><button class="attach-btn" type="button" data-upload title="Upload a PDF or TXT document"><svg aria-hidden="true"><use href="#i-plus"/></svg><span>Add a document</span></button><span class="composer-language"><svg aria-hidden="true"><use href="#i-language"/></svg>In your own words</span><button class="send-btn" id="send-btn" type="submit"><span>Ask Folio</span><svg aria-hidden="true"><use href="#i-arrow"/></svg></button></div>
           </form>
-          <p class="composer-note" id="composer-note">
-            <span>Evidence citations stay attached to answers. Verify with original sources.</span>
-            <span class="keyboard-tip">Enter to send &middot; Shift + Enter for new line</span>
-          </p>
+          <p class="composer-note" id="composer-note"><span>Follow the citations to check an answer against the original.</span><span class="keyboard-tip"><kbd>↵</kbd> Send <span>·</span> <kbd>Shift ↵</kbd> New line</span></p>
         </div>
       </div>
-
-      <!-- SOURCE PREVIEW PANEL -->
-      <aside class="source-panel" id="source-panel" aria-label="Source preview" hidden>
-        <div class="source-panel-header">
-          <strong>Inside the source passage</strong>
-          <button class="icon-btn" id="close-source" aria-label="Close source preview">
-            <svg><use href="#i-close"/></svg>
-          </button>
-        </div>
-        <div id="source-preview"></div>
-      </aside>
+      <aside class="source-panel" id="source-panel" aria-label="Source preview" hidden><div class="source-panel-header"><div><span class="eyebrow">THE PAPER TRAIL</span><strong>Behind the answer</strong></div><button class="icon-btn" id="close-source" aria-label="Close source preview"><svg><use href="#i-close"/></svg></button></div><div id="source-preview"></div></aside>
     </div>
   </main>
 </div>
-
-<!-- HIDDEN FILE INPUT -->
 <input type="file" id="file-input" accept=".pdf,.txt" multiple hidden>
-
-<!-- FLOATING STATUS & NOTIFICATIONS -->
-<div class="upload-status" id="upload-status" role="status" hidden>
-  <span class="spinner"></span>
-  <div class="upload-status-body">
-    <strong id="upload-title">Uploading…</strong>
-    <small id="upload-detail"></small>
-    <progress id="upload-progress" max="100" value="0"></progress>
-  </div>
-</div>
+<div class="upload-status" id="upload-status" role="status" hidden><span class="spinner"></span><div class="upload-status-body"><strong id="upload-title">Uploading…</strong><small id="upload-detail"></small><progress id="upload-progress" max="100" value="0" aria-label="Document upload progress"></progress></div></div>
 <div class="notification" id="notification" role="status" hidden></div>
-
-<!-- SETTINGS DIALOG -->
-<dialog id="settings-dialog" class="workspace-dialog">
-  <div class="dialog-heading">
-    <div>
-      <span class="eyebrow">CUSTOMIZE WORKSPACE</span>
-      <h2>Workspace Settings</h2>
-    </div>
-    <button class="icon-btn" data-close-dialog aria-label="Close settings">
-      <svg><use href="#i-close"/></svg>
-    </button>
-  </div>
-  <form id="profile-form">
-    <label for="display-name">Researcher Display Name</label>
-    <div class="inline-form">
-      <input id="display-name" maxlength="50" required placeholder="Your name">
-      <button class="primary-btn"><svg aria-hidden="true"><use href="#i-check"/></svg>Save</button>
-    </div>
-  </form>
-  <label for="theme-select">Interface Theme</label>
-  <select id="theme-select">
-    <option value="system">System Preference</option>
-    <option value="light">Light Mode</option>
-    <option value="dark">Dark Mode</option>
-  </select>
-  <div class="guest-explainer">
-    <strong>Private Session Workspace</strong>
-    <p>All documents and conversational vectors are scoped to this browser session. Data is private and isolated.</p>
-    <small>Workspace Session Key</small>
-    <code id="workspace-id"></code>
-  </div>
-  <details class="workspace-stats">
-    <summary>System & Indexing Diagnostics</summary>
-    <div id="stats-content">Loading…</div>
-  </details>
+<dialog id="settings-dialog" class="workspace-dialog" aria-labelledby="settings-title">
+  <div class="dialog-heading"><div><span class="eyebrow">MAKE YOURSELF AT HOME</span><h2 id="settings-title">Your workspace</h2></div><button class="icon-btn" data-close-dialog aria-label="Close settings"><svg><use href="#i-close"/></svg></button></div>
+  <form id="profile-form"><label for="display-name">What should we call you?</label><div class="inline-form"><input id="display-name" maxlength="50" required placeholder="Your name"><button class="primary-btn">Save name</button></div></form>
+  <label for="theme-select">Appearance</label><select id="theme-select"><option value="light">Light</option><option value="dark">Dark</option><option value="system">Follow system</option></select>
+  <div class="guest-explainer"><strong>A note about your workspace</strong><p>Your documents and conversations are linked to this browser session. Keep your cookies to return to them. This is a guest workspace, without a cross-device account.</p><details><summary>Local recovery ID</summary><code id="workspace-id"></code></details></div>
+  <details class="workspace-stats"><summary>Workspace details</summary><div id="stats-content">Loading…</div></details>
   <button class="text-btn danger" id="settings-clear-history">Delete all conversation history</button>
 </dialog>
-
-<!-- CONVERSATION DIALOG -->
-<dialog id="conversation-dialog" class="workspace-dialog compact-dialog">
-  <div class="dialog-heading">
-    <h2>Conversation Options</h2>
-    <button class="icon-btn" data-close-dialog aria-label="Close actions">
-      <svg><use href="#i-close"/></svg>
-    </button>
-  </div>
-  <form id="rename-form">
-    <label for="rename-title">Conversation Title</label>
-    <input id="rename-title" maxlength="100" required>
-    <button class="primary-btn"><svg aria-hidden="true"><use href="#i-check"/></svg>Save Title</button>
-  </form>
-  <div class="dialog-actions-row">
-    <button class="secondary-btn" id="clear-conversation-btn">Clear Messages</button>
-    <button class="text-btn danger" id="delete-conversation-btn">Delete Conversation</button>
-  </div>
+<dialog id="conversation-dialog" class="workspace-dialog compact-dialog" aria-labelledby="conversation-dialog-title">
+  <div class="dialog-heading"><h2 id="conversation-dialog-title">Conversation details</h2><button class="icon-btn" data-close-dialog aria-label="Close conversation details"><svg><use href="#i-close"/></svg></button></div>
+  <form id="rename-form"><label for="rename-title">Conversation title</label><input id="rename-title" maxlength="100" required><button class="primary-btn">Save title</button></form>
+  <div class="dialog-actions-row"><button class="secondary-btn" id="clear-conversation-btn">Clear messages</button><button class="text-btn danger" id="delete-conversation-btn">Delete conversation</button></div>
 </dialog>
-
 {{ initial|json_script:"workspace-initial" }}
 </body>
 </html>

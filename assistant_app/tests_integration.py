@@ -17,6 +17,7 @@ from .test_fixtures import pdf_bytes, scanned_pdf_bytes, KNOWN_PAGES
 
 
 @skipUnless(os.getenv("DOCUMIND_INTEGRATION") == "1", "Opt in with python test_rag_pipeline.py")
+@override_settings(LLM_PROVIDER="gemini")
 class RealRagTests(TestCase):
     @classmethod
     def setUpClass(cls):
